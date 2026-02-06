@@ -34,7 +34,7 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-              <span className="px-2 py-0.5 text-[10px] font-bold bg-orange-500 text-white rounded-full">FIREBASE MODE  </span>
+              <span className="px-2 py-0.5 text-[10px] font-bold bg-green-600 text-white rounded-full">LIVE</span>
             </div>
             <p className="text-muted-foreground">
               Welcome back! Track your daily work efficiently.
