@@ -36,13 +36,18 @@ export function useMenus() {
   const menusQuery = useQuery({
     queryKey: ['menus', user?.uid],
     queryFn: async () => {
-      if (!user) return [];
+      if (!user) {
+        console.log('--- DEBUG: No user found for menus query ---');
+        return [];
+      }
+      console.log('--- DEBUG: Querying menus for user UID:', user.uid);
       const q = query(
         collection(db, 'menus'),
         where('user_id', '==', user.uid),
         orderBy('sort_order', 'asc')
       );
       const querySnapshot = await getDocs(q);
+      console.log('--- DEBUG: Found', querySnapshot.size, 'menus in Firestore');
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
