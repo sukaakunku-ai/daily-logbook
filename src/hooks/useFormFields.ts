@@ -1,7 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  orderBy,
+  limit,
+  serverTimestamp,
+  Timestamp,
+  writeBatch
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { toast } from 'sonner';
-import type { Json } from '@/integrations/supabase/types';
 
 export type FieldType = 'text' | 'textarea' | 'number' | 'date' | 'select' | 'checkbox' | 'file';
 
@@ -40,16 +54,17 @@ export function useFormFields(menuId: string | undefined) {
     queryKey: ['form_fields', menuId],
     queryFn: async () => {
       if (!menuId) return [];
-      const { data, error } = await supabase
-        .from('form_fields')
-        .select('*')
-        .eq('menu_id', menuId)
-        .order('sort_order', { ascending: true });
-      if (error) throw error;
-      return data.map((field) => ({
-        ...field,
-        field_type: field.field_type as FieldType,
-        options: Array.isArray(field.options) ? (field.options as string[]) : [],
+      const q = query(
+        collection(db, 'form_fields'),
+        where('menu_id', '==', menuId),
+        orderBy('sort_order', 'asc')
+      );
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        created_at: (doc.data().created_at as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
+        updated_at: (doc.data().updated_at as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
       })) as FormField[];
     },
     enabled: !!menuId,
@@ -57,85 +72,81 @@ export function useFormFields(menuId: string | undefined) {
 
   const createField = useMutation({
     mutationFn: async (input: CreateFieldInput) => {
-      const { data: existing } = await supabase
-        .from('form_fields')
-        .select('sort_order')
-        .eq('menu_id', input.menu_id)
-        .order('sort_order', { ascending: false })
-        .limit(1);
+      const q = query(
+        collection(db, 'form_fields'),
+        where('menu_id', '==', input.menu_id),
+        orderBy('sort_order', 'desc'),
+        limit(1)
+      );
+      const querySnapshot = await getDocs(q);
+      const maxOrder = querySnapshot.empty ? -1 : querySnapshot.docs[0].data().sort_order;
 
-      const maxOrder = existing?.[0]?.sort_order ?? -1;
-
-      const { data, error } = await supabase
-        .from('form_fields')
-        .insert({
-          menu_id: input.menu_id,
-          label: input.label,
-          field_type: input.field_type,
-          required: input.required ?? false,
-          options: (input.options ?? []) as unknown as Json,
-          sort_order: maxOrder + 1,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+      const docRef = await addDoc(collection(db, 'form_fields'), {
+        menu_id: input.menu_id,
+        label: input.label,
+        field_type: input.field_type,
+        required: input.required ?? false,
+        options: input.options ?? [],
+        sort_order: maxOrder + 1,
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp(),
+      });
+      return { id: docRef.id };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['form_fields', menuId] });
       toast.success('Field added successfully');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Failed to add field: ' + error.message);
     },
   });
 
   const updateField = useMutation({
     mutationFn: async (input: UpdateFieldInput) => {
-      const updateData: Record<string, unknown> = {};
+      const docRef = doc(db, 'form_fields', input.id);
+      const updateData: Record<string, unknown> = {
+        updated_at: serverTimestamp(),
+      };
       if (input.label !== undefined) updateData.label = input.label;
       if (input.field_type !== undefined) updateData.field_type = input.field_type;
       if (input.required !== undefined) updateData.required = input.required;
-      if (input.options !== undefined) updateData.options = input.options as unknown as Json;
+      if (input.options !== undefined) updateData.options = input.options;
 
-      const { data, error } = await supabase
-        .from('form_fields')
-        .update(updateData)
-        .eq('id', input.id)
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+      await updateDoc(docRef, updateData);
+      return { id: input.id };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['form_fields', menuId] });
       toast.success('Field updated successfully');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Failed to update field: ' + error.message);
     },
   });
 
   const deleteField = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('form_fields').delete().eq('id', id);
-      if (error) throw error;
+      const docRef = doc(db, 'form_fields', id);
+      await deleteDoc(docRef);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['form_fields', menuId] });
       toast.success('Field deleted successfully');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Failed to delete field: ' + error.message);
     },
   });
 
   const reorderFields = useMutation({
     mutationFn: async (fields: { id: string; sort_order: number }[]) => {
-      const updates = fields.map(({ id, sort_order }) =>
-        supabase.from('form_fields').update({ sort_order }).eq('id', id)
-      );
-      await Promise.all(updates);
+      const batch = writeBatch(db);
+      fields.forEach(({ id, sort_order }) => {
+        const docRef = doc(db, 'form_fields', id);
+        batch.update(docRef, { sort_order, updated_at: serverTimestamp() });
+      });
+      await batch.commit();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['form_fields', menuId] });

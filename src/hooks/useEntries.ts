@@ -1,8 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  orderBy,
+  serverTimestamp,
+  Timestamp
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import type { Json } from '@/integrations/supabase/types';
 
 export interface Entry {
   id: string;
@@ -31,15 +43,17 @@ export function useEntries(menuId: string | undefined) {
     queryKey: ['entries', menuId],
     queryFn: async () => {
       if (!menuId) return [];
-      const { data, error } = await supabase
-        .from('entries')
-        .select('*')
-        .eq('menu_id', menuId)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data.map((entry) => ({
-        ...entry,
-        data: (typeof entry.data === 'object' && entry.data !== null ? entry.data : {}) as Record<string, unknown>,
+      const q = query(
+        collection(db, 'entries'),
+        where('menu_id', '==', menuId),
+        orderBy('created_at', 'desc')
+      );
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        created_at: (doc.data().created_at as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
+        updated_at: (doc.data().updated_at as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
       })) as Entry[];
     },
     enabled: !!menuId,
@@ -48,57 +62,52 @@ export function useEntries(menuId: string | undefined) {
   const createEntry = useMutation({
     mutationFn: async (input: CreateEntryInput) => {
       if (!user) throw new Error('Not authenticated');
-      const { data, error } = await supabase
-        .from('entries')
-        .insert({
-          menu_id: input.menu_id,
-          user_id: user.id,
-          data: input.data as unknown as Json,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+      const docRef = await addDoc(collection(db, 'entries'), {
+        menu_id: input.menu_id,
+        user_id: user.uid,
+        data: input.data,
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp(),
+      });
+      return { id: docRef.id };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries', menuId] });
       toast.success('Entry submitted successfully');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Failed to submit entry: ' + error.message);
     },
   });
 
   const updateEntry = useMutation({
     mutationFn: async (input: UpdateEntryInput) => {
-      const { data, error } = await supabase
-        .from('entries')
-        .update({ data: input.data as unknown as Json })
-        .eq('id', input.id)
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+      const docRef = doc(db, 'entries', input.id);
+      await updateDoc(docRef, {
+        data: input.data,
+        updated_at: serverTimestamp(),
+      });
+      return { id: input.id };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries', menuId] });
       toast.success('Entry updated successfully');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Failed to update entry: ' + error.message);
     },
   });
 
   const deleteEntry = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('entries').delete().eq('id', id);
-      if (error) throw error;
+      const docRef = doc(db, 'entries', id);
+      await deleteDoc(docRef);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries', menuId] });
       toast.success('Entry deleted successfully');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Failed to delete entry: ' + error.message);
     },
   });
