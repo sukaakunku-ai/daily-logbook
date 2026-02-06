@@ -35,6 +35,7 @@ export function DynamicForm({ menuId, editingEntry, onSuccess }: DynamicFormProp
   };
 
   const handleFileUpload = async (field: FormFieldType, file: File) => {
+    console.log('--- VERIFY: Running Firebase version of DynamicForm ---');
     setUploadingFiles((prev) => new Set(prev).add(field.id));
     try {
       // Note: In a real Firebase app, we would use getStorage and uploadBytes
