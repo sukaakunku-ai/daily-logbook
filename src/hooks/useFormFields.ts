@@ -56,16 +56,16 @@ export function useFormFields(menuId: string | undefined) {
       if (!menuId) return [];
       const q = query(
         collection(db, 'form_fields'),
-        where('menu_id', '==', menuId),
-        orderBy('sort_order', 'asc')
+        where('menu_id', '==', menuId)
       );
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
+      const fields = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         created_at: (doc.data().created_at as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
         updated_at: (doc.data().updated_at as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
       })) as FormField[];
+      return fields.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
     },
     enabled: !!menuId,
   });

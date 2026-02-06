@@ -45,16 +45,17 @@ export function useEntries(menuId: string | undefined) {
       if (!menuId) return [];
       const q = query(
         collection(db, 'entries'),
-        where('menu_id', '==', menuId),
-        orderBy('created_at', 'desc')
+        where('menu_id', '==', menuId)
       );
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
+      const entries = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         created_at: (doc.data().created_at as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
         updated_at: (doc.data().updated_at as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
       })) as Entry[];
+      // Sort manually by created_at descending
+      return entries.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     },
     enabled: !!menuId,
   });
