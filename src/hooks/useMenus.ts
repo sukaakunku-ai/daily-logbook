@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   collection,
@@ -51,6 +52,14 @@ export function useMenus() {
     },
     enabled: !!user,
   });
+
+  // Show error if query fails (e.g., missing index)
+  useEffect(() => {
+    if (menusQuery.error) {
+      console.error('Firestore Query Error:', menusQuery.error);
+      toast.error('Failed to load trackers: ' + (menusQuery.error as any).message);
+    }
+  }, [menusQuery.error]);
 
   const createMenu = useMutation({
     mutationFn: async ({ name, icon = 'file-text' }: { name: string; icon?: string }) => {
