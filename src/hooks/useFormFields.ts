@@ -72,14 +72,15 @@ export function useFormFields(menuId: string | undefined) {
 
   const createField = useMutation({
     mutationFn: async (input: CreateFieldInput) => {
+      // Get max sort_order without requiring composite index
       const q = query(
         collection(db, 'form_fields'),
-        where('menu_id', '==', input.menu_id),
-        orderBy('sort_order', 'desc'),
-        limit(1)
+        where('menu_id', '==', input.menu_id)
       );
       const querySnapshot = await getDocs(q);
-      const maxOrder = querySnapshot.empty ? -1 : querySnapshot.docs[0].data().sort_order;
+      const maxOrder = querySnapshot.empty
+        ? -1
+        : Math.max(...querySnapshot.docs.map(doc => doc.data().sort_order ?? 0));
 
       const docRef = await addDoc(collection(db, 'form_fields'), {
         menu_id: input.menu_id,
