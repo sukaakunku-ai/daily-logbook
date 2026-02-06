@@ -1,8 +1,10 @@
 {
     "rewrites": [
         {
-            "source": "/(.*)",
+            "source": "/(?!assets/|favicon.ico|sw.js|index.css|main.tsx|public/).*",
             "destination": "/index.html"
         }
-    ]
+    ],
+    "cleanUrls": true,
+    "trailingSlash": false
 }
