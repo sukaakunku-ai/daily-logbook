@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   collection,
@@ -37,17 +36,14 @@ export function useMenus() {
     queryKey: ['menus', user?.uid],
     queryFn: async () => {
       if (!user) {
-        console.log('--- DEBUG: No user found for menus query ---');
         return [];
       }
-      console.log('--- DEBUG: Querying menus for user UID:', user.uid);
       // Remove orderBy to avoid requiring composite index - we'll sort manually instead
       const q = query(
         collection(db, 'menus'),
         where('user_id', '==', user.uid)
       );
       const querySnapshot = await getDocs(q);
-      console.log('--- DEBUG: Found', querySnapshot.size, 'menus in Firestore');
       const menus = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
@@ -60,13 +56,11 @@ export function useMenus() {
     enabled: !!user,
   });
 
-  // Show error if query fails (e.g., missing index)
-  useEffect(() => {
-    if (menusQuery.error) {
-      console.error('Firestore Query Error:', menusQuery.error);
-      toast.error('Failed to load trackers: ' + (menusQuery.error as any).message);
-    }
-  }, [menusQuery.error]);
+  // Show error if query fails - removed useEffect to prevent re-render issues
+  if (menusQuery.error) {
+    console.error('Firestore Query Error:', menusQuery.error);
+    toast.error('Failed to load trackers: ' + (menusQuery.error as any).message);
+  }
 
   const createMenu = useMutation({
     mutationFn: async ({ name, icon = 'file-text' }: { name: string; icon?: string }) => {
