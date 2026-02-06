@@ -41,19 +41,21 @@ export function useMenus() {
         return [];
       }
       console.log('--- DEBUG: Querying menus for user UID:', user.uid);
+      // Remove orderBy to avoid requiring composite index - we'll sort manually instead
       const q = query(
         collection(db, 'menus'),
-        where('user_id', '==', user.uid),
-        orderBy('sort_order', 'asc')
+        where('user_id', '==', user.uid)
       );
       const querySnapshot = await getDocs(q);
       console.log('--- DEBUG: Found', querySnapshot.size, 'menus in Firestore');
-      return querySnapshot.docs.map(doc => ({
+      const menus = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         created_at: (doc.data().created_at as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
         updated_at: (doc.data().updated_at as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
       })) as Menu[];
+      // Sort manually by sort_order
+      return menus.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
     },
     enabled: !!user,
   });
@@ -70,14 +72,15 @@ export function useMenus() {
     mutationFn: async ({ name, icon = 'file-text' }: { name: string; icon?: string }) => {
       if (!user) throw new Error('Not authenticated');
 
+      // Get max sort_order without requiring composite index
       const q = query(
         collection(db, 'menus'),
-        where('user_id', '==', user.uid),
-        orderBy('sort_order', 'desc'),
-        limit(1)
+        where('user_id', '==', user.uid)
       );
       const querySnapshot = await getDocs(q);
-      const maxOrder = querySnapshot.empty ? -1 : querySnapshot.docs[0].data().sort_order;
+      const maxOrder = querySnapshot.empty
+        ? -1
+        : Math.max(...querySnapshot.docs.map(doc => doc.data().sort_order ?? 0));
 
       const docRef = await addDoc(collection(db, 'menus'), {
         name,
