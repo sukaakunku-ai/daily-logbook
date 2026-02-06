@@ -35,32 +35,32 @@ export function DynamicForm({ menuId, editingEntry, onSuccess }: DynamicFormProp
   };
 
   const handleFileUpload = async (field: FormFieldType, file: File) => {
-    console.log('--- VERIFY: Running Firebase version of DynamicForm ---');
     setUploadingFiles((prev) => new Set(prev).add(field.id));
     try {
-      // Note: In a real Firebase app, we would use getStorage and uploadBytes
-      // For now, since the user wants to remove Supabase, we'll implement a placeholder
-      // or use Firebase Storage if configured.
+      // Upload to Google Drive via serverless function
+      const formData = new FormData();
+      formData.append('file', file);
 
-      // I'll add a simplified simulated upload for now, or just explain.
-      // Actually, since I can't easily setup Firebase Storage rules, 
-      // I'll show how it would look with Firebase Storage.
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
 
-      toast.info('File upload would now go to Firebase or GDrive. Logic needs backend implementation.');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
+      }
 
-      // Simulating a successful upload for UI purposes
-      const result = {
-        fileId: 'firebase-' + Date.now(),
-        fileName: file.name,
-        webViewLink: '#',
-      };
+      const result = await response.json();
 
       handleChange(field.id, {
         fileId: result.fileId,
-        fileName: file.name,
+        fileName: result.fileName,
+        url: result.url,
         webViewLink: result.webViewLink,
       });
-      toast.success('File upload simulated successfully');
+
+      toast.success(`File uploaded successfully to Google Drive!`);
     } catch (error) {
       console.error('File upload error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to upload file');
