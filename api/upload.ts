@@ -37,17 +37,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             throw new Error(`Config incomplete: Key(${!!privateKey}), Email(${!!clientEmail}), FolderID(${folderId})`);
         }
 
-        console.log('API_VERSION: 1.1.1');
+        console.log('API_VERSION: 1.1.3');
         console.log('Target Folder ID:', folderId);
 
         // Robust but light formatting
         const cleanKey = privateKey.replace(/\\n/g, '\n').replace(/^"|"$/g, '').trim();
         const auth = new google.auth.GoogleAuth({
             credentials: { client_email: clientEmail, private_key: cleanKey },
-            scopes: ['https://www.googleapis.com/auth/drive.file'],
+            scopes: ['https://www.googleapis.com/auth/drive'], // Changed from drive.file to drive
         });
 
         const drive = google.drive({ version: 'v3', auth });
+
 
         // VERIFY FOLDER ACCESS FIRST
         try {
