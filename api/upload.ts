@@ -27,13 +27,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const privateKey = process.env.GOOGLE_PRIVATE_KEY?.trim();
         const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
-        const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID?.trim();
+        let folderId = process.env.GOOGLE_DRIVE_FOLDER_ID?.trim() || '';
+
+        // --- VERSION 1.1.0: FOLDER ID AUTO-CLEAN ---
+        // If the user accidentally copied instructions like "- **Value**: ID"
+        if (folderId.includes('Value')) {
+            folderId = folderId.split(':').pop()?.replace(/[*`\s]/g, '') || folderId;
+        }
+        folderId = folderId.replace(/^['"]|['"]$/g, '').trim();
 
         if (!privateKey || !clientEmail || !folderId) {
-            throw new Error('Config missing');
+            throw new Error('Config missing (Private Key, Email, or Folder ID)');
         }
 
         console.log('Using SA Email:', clientEmail);
+        console.log('Using Folder ID (Safe):', folderId.substring(0, 5) + '...');
 
         // Robust but light formatting
         let cleanKey = privateKey
@@ -46,6 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const body = cleanKey.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, '');
             cleanKey = `-----BEGIN PRIVATE KEY-----\n${body.match(/.{1,64}/g)?.join('\n')}\n-----END PRIVATE KEY-----`;
         }
+
 
         const auth = new google.auth.GoogleAuth({
             credentials: {
