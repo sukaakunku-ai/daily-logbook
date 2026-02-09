@@ -12,7 +12,7 @@ export const config = {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    console.log('API_VERSION: 1.0.5');
+    console.log('API_VERSION: 1.0.6');
 
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -49,11 +49,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             });
         }
 
-        // --- VERSION 1.0.5: ULTRA ROBUST KEY REPAIR ---
-        // 1. Strip everything to find the base64 content
+        // --- VERSION 1.0.6: FIXED ROBUST KEY REPAIR ---
+        // 1. Specifically remove headers/footers first to avoid greedy regex issues
         let cleanBody = privateKey
-            .replace(/\\n/g, '')
-            .replace(/---.*---/g, '')
+            .replace(/-----BEGIN (RSA )?PRIVATE KEY-----/g, '')
+            .replace(/-----END (RSA )?PRIVATE KEY-----/g, '')
+            .replace(/\\n/g, '') // Remove literal \n
+            .replace(/\s/g, '')  // Remove all whitespace/newlines
             .replace(/[^a-zA-Z0-9+/=]/g, ''); // Keep ONLY base64 characters
 
         // 2. Reconstruct the PEM format perfectly
@@ -63,10 +65,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const formattedKey = `${header}\n${wrappedBody}\n${footer}`;
 
         // 3. Diagnostic Logging
-        console.log('Key repair 1.0.5 status:', {
+        console.log('Key repair 1.0.6 status:', {
             inputLength: privateKey.length,
             bodyLength: cleanBody.length,
-            startCodes: privateKey.substring(0, 10).split('').map(c => c.charCodeAt(0))
+            validFormat: cleanBody.length > 500 // RSA 2048 keys are usually > 1500 chars
         });
 
         // 4. Validate locally
@@ -76,11 +78,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } catch (err: any) {
             console.error('Local crypto validation: FAILED', err.message);
             return res.status(500).json({
-                error: 'Final Key Reconstruction Failed',
+                error: 'Key validation failed in 1.0.6',
                 details: err.message,
                 diagnostics: {
-                    inputStart: privateKey.substring(0, 15),
-                    inputEnd: privateKey.substring(privateKey.length - 15)
+                    bodyLength: cleanBody.length,
+                    reconstructedLength: formattedKey.length
                 }
             });
         }
@@ -95,6 +97,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
 
         const drive = google.drive({ version: 'v3', auth });
+
 
 
 
