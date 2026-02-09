@@ -12,7 +12,7 @@ export const config = {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    console.log('API_VERSION: 1.0.4');
+    console.log('API_VERSION: 1.0.5');
 
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -49,46 +49,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             });
         }
 
-        // --- NEW ROBUST KEY REPAIR LOGIC ---
-        let formattedKey = privateKey
-            .replace(/^['"]|['"]$/g, '') // Remove start/end quotes
-            .replace(/\\n/g, '\n')       // Convert literal \n to real newlines
-            .replace(/\r/g, '')          // Remove carriage returns
-            .trim();
+        // --- VERSION 1.0.5: ULTRA ROBUST KEY REPAIR ---
+        // 1. Strip everything to find the base64 content
+        let cleanBody = privateKey
+            .replace(/\\n/g, '')
+            .replace(/---.*---/g, '')
+            .replace(/[^a-zA-Z0-9+/=]/g, ''); // Keep ONLY base64 characters
 
+        // 2. Reconstruct the PEM format perfectly
         const header = '-----BEGIN PRIVATE KEY-----';
         const footer = '-----END PRIVATE KEY-----';
+        const wrappedBody = cleanBody.match(/.{1,64}/g)?.join('\n');
+        const formattedKey = `${header}\n${wrappedBody}\n${footer}`;
 
-        // Extract body and clean it
-        let body = formattedKey
-            .replace(header, '')
-            .replace(footer, '')
-            .replace(/\s/g, ''); // Remove all whitespace
-
-        // Re-wrap to 64 chars
-        const wrappedBody = body.match(/.{1,64}/g)?.join('\n');
-        formattedKey = `${header}\n${wrappedBody}\n${footer}`;
-
-        // SAFE LOGGING
-        console.log('Key repair status:', {
-            prefix: formattedKey.substring(0, 20),
-            suffix: formattedKey.substring(formattedKey.length - 20),
-            lines: formattedKey.split('\n').length
+        // 3. Diagnostic Logging
+        console.log('Key repair 1.0.5 status:', {
+            inputLength: privateKey.length,
+            bodyLength: cleanBody.length,
+            startCodes: privateKey.substring(0, 10).split('').map(c => c.charCodeAt(0))
         });
 
-        // VALIDATE KEY LOCALLY
+        // 4. Validate locally
         try {
             crypto.createPrivateKey(formattedKey);
             console.log('Local crypto validation: SUCCESS');
         } catch (err: any) {
             console.error('Local crypto validation: FAILED', err.message);
             return res.status(500).json({
-                error: 'Invalid Private Key Format',
+                error: 'Final Key Reconstruction Failed',
                 details: err.message,
-                hint: 'Please re-copy the private key from your JSON file and paste it into Vercel without quotes.'
+                diagnostics: {
+                    inputStart: privateKey.substring(0, 15),
+                    inputEnd: privateKey.substring(privateKey.length - 15)
+                }
             });
         }
-        // -----------------------------------
+        // ----------------------------------------------
 
         const auth = new google.auth.GoogleAuth({
             credentials: {
