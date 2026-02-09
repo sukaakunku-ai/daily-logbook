@@ -58,7 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const drive = google.drive({ version: 'v3', auth });
 
 
-        console.log('Starting Google Drive Upload...');
+        console.log('Starting Google Drive Upload to folder:', folderId);
         const uploadedFile = await drive.files.create({
             requestBody: {
                 name: file.originalFilename || 'uploaded-file',
@@ -69,7 +69,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 body: fs.createReadStream(file.filepath),
             },
             fields: 'id, name, webViewLink',
+            supportsAllDrives: true, // Crucial for some quota scenarios
         });
+
 
         console.log('Upload successful:', uploadedFile.data.id);
 
