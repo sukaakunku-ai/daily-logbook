@@ -12,29 +12,16 @@ export const config = {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    console.log('API_VERSION: 1.0.6');
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+    console.log('API_VERSION: 1.0.7');
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     try {
-        // Parse form data
-        const form = formidable({
-            allowEmptyFiles: true,
-            minFileSize: 0,
-            maxFiles: 1,
-        });
-
+        const form = formidable({ maxFiles: 1 });
         const [fields, files] = await form.parse(req);
         const file = files.file?.[0];
-        if (!file || !file.filepath) {
-            return res.status(400).json({ error: 'No file uploaded or file path is missing' });
-        }
 
-        const stats = fs.statSync(file.filepath);
-        if (stats.size === 0) {
-            return res.status(400).json({ error: 'Uploaded file is empty' });
+        if (!file || !file.filepath) {
+            return res.status(400).json({ error: 'No file uploaded' });
         }
 
         const privateKey = process.env.GOOGLE_PRIVATE_KEY;
@@ -42,51 +29,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
         if (!privateKey || !clientEmail || !folderId) {
-            console.error('Missing configuration');
-            return res.status(500).json({
-                error: 'Server configuration error',
-                message: 'Google Drive credentials are not properly configured.'
-            });
+            throw new Error('Server configuration missing (Check Vercel Env Vars)');
         }
 
-        // --- VERSION 1.0.6: FIXED ROBUST KEY REPAIR ---
-        // 1. Specifically remove headers/footers first to avoid greedy regex issues
-        let cleanBody = privateKey
-            .replace(/-----BEGIN (RSA )?PRIVATE KEY-----/g, '')
-            .replace(/-----END (RSA )?PRIVATE KEY-----/g, '')
-            .replace(/\\n/g, '') // Remove literal \n
-            .replace(/\s/g, '')  // Remove all whitespace/newlines
-            .replace(/[^a-zA-Z0-9+/=]/g, ''); // Keep ONLY base64 characters
-
-        // 2. Reconstruct the PEM format perfectly
-        const header = '-----BEGIN PRIVATE KEY-----';
-        const footer = '-----END PRIVATE KEY-----';
-        const wrappedBody = cleanBody.match(/.{1,64}/g)?.join('\n');
-        const formattedKey = `${header}\n${wrappedBody}\n${footer}`;
-
-        // 3. Diagnostic Logging
-        console.log('Key repair 1.0.6 status:', {
-            inputLength: privateKey.length,
-            bodyLength: cleanBody.length,
-            validFormat: cleanBody.length > 500 // RSA 2048 keys are usually > 1500 chars
-        });
-
-        // 4. Validate locally
-        try {
-            crypto.createPrivateKey(formattedKey);
-            console.log('Local crypto validation: SUCCESS');
-        } catch (err: any) {
-            console.error('Local crypto validation: FAILED', err.message);
-            return res.status(500).json({
-                error: 'Key validation failed in 1.0.6',
-                details: err.message,
-                diagnostics: {
-                    bodyLength: cleanBody.length,
-                    reconstructedLength: formattedKey.length
-                }
-            });
-        }
-        // ----------------------------------------------
+        // Standard private key formatting
+        const formattedKey = privateKey.replace(/\\n/g, '\n').replace(/^"|"$/g, '').trim();
 
         const auth = new google.auth.GoogleAuth({
             credentials: {
@@ -98,53 +45,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const drive = google.drive({ version: 'v3', auth });
 
-
-
-
-
-        // Upload to Google Drive
-        const fileMetadata = {
-            name: file.originalFilename || 'uploaded-file',
-            parents: [process.env.GOOGLE_DRIVE_FOLDER_ID!],
-        };
-
-        const media = {
-            mimeType: file.mimetype || 'application/octet-stream',
-            body: fs.createReadStream(file.filepath),
-        };
-
+        console.log('Starting Google Drive Upload...');
         const uploadedFile = await drive.files.create({
-            requestBody: fileMetadata,
-            media: media,
-            fields: 'id, name, webViewLink, webContentLink',
-        });
-
-        // Make file publicly accessible
-        await drive.permissions.create({
-            fileId: uploadedFile.data.id!,
             requestBody: {
-                role: 'reader',
-                type: 'anyone',
+                name: file.originalFilename || 'uploaded-file',
+                parents: [folderId],
             },
+            media: {
+                mimeType: file.mimetype || 'application/octet-stream',
+                body: fs.createReadStream(file.filepath),
+            },
+            fields: 'id, name, webViewLink',
         });
 
-        // Get the public URL
-        const publicUrl = `https://drive.google.com/file/d/${uploadedFile.data.id}/view`;
+        console.log('Upload successful:', uploadedFile.data.id);
 
-        // Clean up temp file
+        try {
+            await drive.permissions.create({
+                fileId: uploadedFile.data.id!,
+                requestBody: { role: 'reader', type: 'anyone' },
+            });
+        } catch (permError) {
+            console.warn('Could not set permissions, but file was uploaded');
+        }
+
         fs.unlinkSync(file.filepath);
 
         return res.status(200).json({
             success: true,
             fileId: uploadedFile.data.id,
             fileName: uploadedFile.data.name,
-            url: publicUrl,
+            url: `https://drive.google.com/file/d/${uploadedFile.data.id}/view`,
             webViewLink: uploadedFile.data.webViewLink,
         });
     } catch (error: any) {
-        console.error('Upload error:', error);
+        console.error('Final Upload Error:', error.message);
         return res.status(500).json({
-            error: 'Upload failed',
+            error: 'Upload process failed',
             message: error.message
         });
     }
