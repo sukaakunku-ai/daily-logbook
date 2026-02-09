@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { google } from 'googleapis';
 import { formidable } from 'formidable';
 import fs from 'fs';
+import crypto from 'crypto';
 
 // Disable body parsing, we'll use formidable
 export const config = {
@@ -11,7 +12,8 @@ export const config = {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    console.log('API_VERSION: 1.0.3');
+    console.log('API_VERSION: 1.0.4');
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -40,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
         if (!privateKey || !clientEmail || !folderId) {
-            console.error('Missing Google Drive configuration');
+            console.error('Missing configuration');
             return res.status(500).json({
                 error: 'Server configuration error',
                 message: 'Google Drive credentials are not properly configured.'
@@ -51,30 +53,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         let formattedKey = privateKey
             .replace(/^['"]|['"]$/g, '') // Remove start/end quotes
             .replace(/\\n/g, '\n')       // Convert literal \n to real newlines
+            .replace(/\r/g, '')          // Remove carriage returns
             .trim();
 
-        // Ensure it starts/ends correctly
-        if (!formattedKey.includes('-----BEGIN PRIVATE KEY-----')) {
-            formattedKey = `-----BEGIN PRIVATE KEY-----\n${formattedKey}`;
-        }
-        if (!formattedKey.includes('-----END PRIVATE KEY-----')) {
-            formattedKey = `${formattedKey}\n-----END PRIVATE KEY-----`;
-        }
+        const header = '-----BEGIN PRIVATE KEY-----';
+        const footer = '-----END PRIVATE KEY-----';
 
-        // If the key body is all on one line, OpenSSL 3.0+ will fail. 
-        // We need to wrap it to 64 chars if it's not already multiline.
-        const body = formattedKey
-            .replace('-----BEGIN PRIVATE KEY-----', '')
-            .replace('-----END PRIVATE KEY-----', '')
+        // Extract body and clean it
+        let body = formattedKey
+            .replace(header, '')
+            .replace(footer, '')
             .replace(/\s/g, ''); // Remove all whitespace
 
-        formattedKey = `-----BEGIN PRIVATE KEY-----\n${body.match(/.{1,64}/g)?.join('\n')}\n-----END PRIVATE KEY-----`;
+        // Re-wrap to 64 chars
+        const wrappedBody = body.match(/.{1,64}/g)?.join('\n');
+        formattedKey = `${header}\n${wrappedBody}\n${footer}`;
 
-        console.log('Key repair diagnostic:', {
-            originalLength: privateKey.length,
-            repairedLength: formattedKey.length,
-            linesCount: formattedKey.split('\n').length
+        // SAFE LOGGING
+        console.log('Key repair status:', {
+            prefix: formattedKey.substring(0, 20),
+            suffix: formattedKey.substring(formattedKey.length - 20),
+            lines: formattedKey.split('\n').length
         });
+
+        // VALIDATE KEY LOCALLY
+        try {
+            crypto.createPrivateKey(formattedKey);
+            console.log('Local crypto validation: SUCCESS');
+        } catch (err: any) {
+            console.error('Local crypto validation: FAILED', err.message);
+            return res.status(500).json({
+                error: 'Invalid Private Key Format',
+                details: err.message,
+                hint: 'Please re-copy the private key from your JSON file and paste it into Vercel without quotes.'
+            });
+        }
         // -----------------------------------
 
         const auth = new google.auth.GoogleAuth({
@@ -86,6 +99,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
 
         const drive = google.drive({ version: 'v3', auth });
+
 
 
 
