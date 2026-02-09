@@ -17,27 +17,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     try {
         // Parse form data
-        const form = formidable({});
+        const form = formidable({
+            allowEmptyFiles: true,
+            minFileSize: 0,
+            maxFiles: 1,
+        });
+
+        console.log('Request headers:', req.headers);
         const [fields, files] = await form.parse(req);
+        console.log('Parsed files:', JSON.stringify(files, (key, value) =>
+            key === 'filepath' ? value : value, 2
+        ));
 
         const file = files.file?.[0];
-        if (!file) {
-            return res.status(400).json({ error: 'No file uploaded' });
+        if (!file || !file.filepath) {
+            return res.status(400).json({ error: 'No file uploaded or file path is missing' });
         }
+
+        // Verify file exists and has content
+        const stats = fs.statSync(file.filepath);
+        console.log('File stats:', stats);
+
+        if (stats.size === 0) {
+            return res.status(400).json({ error: 'Uploaded file is empty' });
+        }
+
 
         const privateKey = process.env.GOOGLE_PRIVATE_KEY;
         const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
         const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
         if (!privateKey || !clientEmail || !folderId) {
-            console.error('Missing Google Drive configuration:', { 
-                hasKey: !!privateKey, 
-                hasEmail: !!clientEmail, 
-                hasFolder: !!folderId 
+            console.error('Missing Google Drive configuration:', {
+                hasKey: !!privateKey,
+                hasEmail: !!clientEmail,
+                hasFolder: !!folderId
             });
-            return res.status(500).json({ 
-                error: 'Server configuration error', 
-                message: 'Google Drive credentials are not properly configured.' 
+            return res.status(500).json({
+                error: 'Server configuration error',
+                message: 'Google Drive credentials are not properly configured.'
             });
         }
 
