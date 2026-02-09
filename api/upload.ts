@@ -25,11 +25,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
+        const privateKey = process.env.GOOGLE_PRIVATE_KEY;
+        const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+        const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+
+        if (!privateKey || !clientEmail || !folderId) {
+            console.error('Missing Google Drive configuration:', { 
+                hasKey: !!privateKey, 
+                hasEmail: !!clientEmail, 
+                hasFolder: !!folderId 
+            });
+            return res.status(500).json({ 
+                error: 'Server configuration error', 
+                message: 'Google Drive credentials are not properly configured.' 
+            });
+        }
+
         // Setup Google Drive API
         const auth = new google.auth.GoogleAuth({
             credentials: {
-                client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-                private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+                client_email: clientEmail,
+                private_key: privateKey.replace(/\\n/g, '\n').replace(/^"|"$/g, '').trim(),
             },
             scopes: ['https://www.googleapis.com/auth/drive.file'],
         });
