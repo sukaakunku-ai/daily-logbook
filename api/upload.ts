@@ -59,16 +59,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             });
         }
 
+        // Diagnostic log for the key (safe)
+        console.log('Key diagnostic:', {
+            length: privateKey?.length,
+            startsWithHeader: privateKey?.includes('BEGIN PRIVATE KEY'),
+            hasEscapedNewline: privateKey?.includes('\\n'),
+            hasRealNewline: privateKey?.includes('\n'),
+        });
+
+        // Format the private key correctly for OpenSSL
+        let formattedKey = privateKey.replace(/\\n/g, '\n').replace(/^"|"$/g, '').trim();
+
+        // If it's all on one line (common copy-paste issue), it will fail OpenSSL 3 decoding
+        if (formattedKey.includes('-----BEGIN PRIVATE KEY-----') && !formattedKey.includes('\n', 30)) {
+            console.log('Fixing one-line private key format');
+            formattedKey = formattedKey
+                .replace('-----BEGIN PRIVATE KEY-----', '-----BEGIN PRIVATE KEY-----\n')
+                .replace('-----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----');
+        }
+
         // Setup Google Drive API
         const auth = new google.auth.GoogleAuth({
             credentials: {
                 client_email: clientEmail,
-                private_key: privateKey.replace(/\\n/g, '\n').replace(/^"|"$/g, '').trim(),
+                private_key: formattedKey,
             },
             scopes: ['https://www.googleapis.com/auth/drive.file'],
         });
 
         const drive = google.drive({ version: 'v3', auth });
+
 
         // Upload to Google Drive
         const fileMetadata = {
