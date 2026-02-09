@@ -51,12 +51,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // VERIFY FOLDER ACCESS FIRST
         try {
-            await drive.files.get({ fileId: folderId, fields: 'id, name' });
-            console.log('Folder verification: SUCCESS');
+            const folderCheck = await drive.files.get({ fileId: folderId, fields: 'id, name' });
+            console.log('Folder verification SUCCESS:', folderCheck.data.name);
         } catch (verifErr: any) {
-            console.error('Folder verification: FAILED', verifErr.message);
-            throw new Error(`Target folder not accessible. Ensure you shared folder ${folderId} with ${clientEmail} as Editor.`);
+            const googleError = verifErr.response?.data?.error?.message || verifErr.message;
+            console.error('Folder verification FAILED:', googleError);
+            throw new Error(`Google Drive says: "${googleError}". Check folder ID ${folderId} and permissions for ${clientEmail}.`);
         }
+
 
         console.log('Starting upload...');
         const uploadedFile = await drive.files.create({
