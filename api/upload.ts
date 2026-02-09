@@ -27,47 +27,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const privateKey = process.env.GOOGLE_PRIVATE_KEY?.trim();
         const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
-        let folderId = process.env.GOOGLE_DRIVE_FOLDER_ID?.trim() || '';
+        let folderIdInput = process.env.GOOGLE_DRIVE_FOLDER_ID?.trim() || '';
 
-        // --- VERSION 1.1.0: FOLDER ID AUTO-CLEAN ---
-        // If the user accidentally copied instructions like "- **Value**: ID"
-        if (folderId.includes('Value')) {
-            folderId = folderId.split(':').pop()?.replace(/[*`\s]/g, '') || folderId;
-        }
-        folderId = folderId.replace(/^['"]|['"]$/g, '').trim();
+        // --- VERSION 1.1.1: TOTAL CLEANING & VERIFICATION ---
+        // Strip everything that isn't an alphanumeric character for the ID
+        const folderId = folderIdInput.split(':').pop()?.replace(/[^a-zA-Z0-9_-]/g, '') || '';
 
         if (!privateKey || !clientEmail || !folderId) {
-            throw new Error('Config missing (Private Key, Email, or Folder ID)');
+            throw new Error(`Config incomplete: Key(${!!privateKey}), Email(${!!clientEmail}), FolderID(${folderId})`);
         }
 
-        console.log('Using SA Email:', clientEmail);
-        console.log('Using Folder ID (Safe):', folderId.substring(0, 5) + '...');
+        console.log('API_VERSION: 1.1.1');
+        console.log('Target Folder ID:', folderId);
 
         // Robust but light formatting
-        let cleanKey = privateKey
-            .replace(/\\n/g, '\n')
-            .replace(/^"|"$/g, '')
-            .trim();
-
-        // If it looks like a single line, reconstruction is safer
-        if (!cleanKey.includes('\n')) {
-            const body = cleanKey.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, '');
-            cleanKey = `-----BEGIN PRIVATE KEY-----\n${body.match(/.{1,64}/g)?.join('\n')}\n-----END PRIVATE KEY-----`;
-        }
-
-
+        const cleanKey = privateKey.replace(/\\n/g, '\n').replace(/^"|"$/g, '').trim();
         const auth = new google.auth.GoogleAuth({
-            credentials: {
-                client_email: clientEmail,
-                private_key: cleanKey,
-            },
+            credentials: { client_email: clientEmail, private_key: cleanKey },
             scopes: ['https://www.googleapis.com/auth/drive.file'],
         });
 
         const drive = google.drive({ version: 'v3', auth });
 
+        // VERIFY FOLDER ACCESS FIRST
+        try {
+            await drive.files.get({ fileId: folderId, fields: 'id, name' });
+            console.log('Folder verification: SUCCESS');
+        } catch (verifErr: any) {
+            console.error('Folder verification: FAILED', verifErr.message);
+            throw new Error(`Target folder not accessible. Ensure you shared folder ${folderId} with ${clientEmail} as Editor.`);
+        }
 
-        console.log('Starting Google Drive Upload to folder:', folderId);
+        console.log('Starting upload...');
         const uploadedFile = await drive.files.create({
             requestBody: {
                 name: file.originalFilename || 'uploaded-file',
@@ -78,11 +69,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 body: fs.createReadStream(file.filepath),
             },
             fields: 'id, name, webViewLink',
-            supportsAllDrives: true, // Crucial for some quota scenarios
+            supportsAllDrives: true,
         });
 
-
         console.log('Upload successful:', uploadedFile.data.id);
+
 
         try {
             await drive.permissions.create({
