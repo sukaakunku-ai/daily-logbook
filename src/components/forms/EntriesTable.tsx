@@ -91,52 +91,15 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
 
         let successCount = 0;
         const toastId = toast.loading(`Importing ${data.length} entries...`);
-        // Check for missing columns using the first row
+
         let missingColumns: string[] = [];
+        let mappingDebug: string[] = [];
+
         if (data.length > 0) {
           const firstRow = data[0] as Record<string, unknown>;
           const rowKeys = Object.keys(firstRow);
-          const normalize = (str: string) => str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+          console.log('Excel Headers detected:', rowKeys);
 
-          // Helper for smart column matching (replicated from findBestMatch logic)
-          const checkMatch = (label: string) => {
-            const cleanLabel = label.trim().toLowerCase();
-            const normLabel = normalize(label);
-
-            // 0. Manual Aliases for common fields
-            if (normLabel === 'area' || normLabel === 'lokasi') {
-              const aliasMatch = rowKeys.find(k => {
-                const nk = normalize(k);
-                return nk === 'area' || nk === 'lokasi' || nk === 'location' || nk === 'tempat';
-              });
-              if (aliasMatch) return true;
-            }
-
-            // 1. Exact Match (Trimmed & Case-insensitive)
-            if (rowKeys.some(k => k.trim().toLowerCase() === cleanLabel)) return true;
-
-            // 2. Normalized Match (ignores spaces and Symbols)
-            if (rowKeys.some(k => normalize(k) === normLabel)) return true;
-
-            // 3. Label contains Header (long label, short header)
-            if (rowKeys.some(k => k.trim().length > 1 && cleanLabel.includes(k.trim().toLowerCase()))) return true;
-
-            // 4. Header contains Label (short label, long header)
-            if (rowKeys.some(k => k.trim().toLowerCase().includes(cleanLabel))) return true;
-
-            return false;
-          };
-
-          missingColumns = fields.filter(f => !checkMatch(f.label)).map(f => f.label);
-        }
-
-        await Promise.all(data.map(async (row: any) => {
-          const entryData: Record<string, any> = {};
-          let entryDate: Date | undefined = undefined;
-
-          // Find keys in the row
-          const rowKeys = Object.keys(row);
-          console.log('Excel row keys:', rowKeys); // Log row keys for sanity
           const normalize = (str: string) => str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 
           // Helper for smart column matching
@@ -145,8 +108,16 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
             const normLabel = normalize(label);
 
             // 0. Manual Aliases & Specific "Area" fix
+            // 'dokumentasi' often maps to 'link', 'url', 'lampiran', 'file'
+            if (normLabel.includes('dokumentasi') || normLabel.includes('file') || normLabel.includes('gambar')) {
+              const docMatch = rowKeys.find(k => {
+                const nk = normalize(k);
+                return nk.includes('dokumentasi') || nk.includes('link') || nk.includes('url') || nk.includes('file') || nk.includes('lampiran') || nk.includes('image');
+              });
+              if (docMatch) return docMatch;
+            }
+
             if (normLabel.includes('area') || normLabel.includes('lokasi') || normLabel.includes('wilayah')) {
-              // Prefer exact 'area' if available
               const exactArea = rowKeys.find(k => normalize(k) === 'area');
               if (exactArea) return exactArea;
 
@@ -157,7 +128,7 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
               if (areaMatch) return areaMatch;
             }
 
-            // 1. Exact Match (Trimmed & Case-insensitive)
+            // 1. Exact Match
             const exact = rowKeys.find(k => k.trim().toLowerCase() === cleanLabel);
             if (exact) return exact;
 
@@ -180,62 +151,86 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
             return undefined;
           };
 
-          // Date Matching
-          const findKeyExact = (target: string) => rowKeys.find(k => k.trim().toLowerCase() === target.trim().toLowerCase());
-          const dateKey = findKeyExact('Date') || findKeyExact('Timestamp') || findKeyExact('Waktu') || findKeyExact('Tanggal');
-          const dateVal = dateKey ? row[dateKey] : undefined;
+          missingColumns = fields.filter(f => !findBestMatch(f.label)).map(f => f.label);
 
-          if (dateVal instanceof Date) {
-            entryDate = dateVal;
-          } else if (dateVal) {
-            const parsed = new Date(dateVal);
-            if (!isNaN(parsed.getTime())) entryDate = parsed;
-          }
-
-          // Map fields
-          let hasData = false;
-          fields.forEach(field => {
-            const matchedKey = findBestMatch(field.label);
-            const cellVal = matchedKey ? row[matchedKey] : undefined;
-
-            if (cellVal !== undefined && cellVal !== null && cellVal !== '') {
-              hasData = true;
-              if (field.field_type === 'date' && cellVal instanceof Date) {
-                entryData[field.id] = format(cellVal, 'yyyy-MM-dd');
-              } else if (field.field_type === 'checkbox') {
-                entryData[field.id] = (String(cellVal).toLowerCase() === 'yes' || cellVal === true);
-              } else if ((field.field_type === 'image' || field.field_type === 'file') && typeof cellVal === 'string') {
-                entryData[field.id] = {
-                  fileName: 'Link',
-                  webViewLink: cellVal,
-                  url: cellVal
-                };
-              } else {
-                entryData[field.id] = cellVal;
-              }
-            }
+          // Build debug map
+          mappingDebug = fields.map(f => {
+            const match = findBestMatch(f.label);
+            return `${f.label} -> ${match || '❌ NONE'}`;
           });
-          if (hasData) {
-            await createEntry.mutateAsync({
-              menu_id: menuId,
-              data: entryData,
-              created_at: entryDate
+          console.log('Field Mapping:', mappingDebug);
+
+          // Execute Import
+          await Promise.all(data.map(async (row: any) => {
+            const entryData: Record<string, any> = {};
+            let entryDate: Date | undefined = undefined;
+
+            // Date Parsing
+            const findKeyExact = (target: string) => rowKeys.find(k => k.trim().toLowerCase() === target.trim().toLowerCase());
+            const dateKey = findKeyExact('Date') || findKeyExact('Timestamp') || findKeyExact('Waktu') || findKeyExact('Tanggal');
+            const dateVal = dateKey ? row[dateKey] : undefined;
+
+            if (dateVal instanceof Date) {
+              entryDate = dateVal;
+            } else if (dateVal) {
+              const parsed = new Date(dateVal);
+              if (!isNaN(parsed.getTime())) entryDate = parsed;
+            }
+
+            // Field Mapping
+            let hasData = false;
+            fields.forEach(field => {
+              const matchedKey = findBestMatch(field.label);
+              const cellVal = matchedKey ? row[matchedKey] : undefined;
+
+              if (cellVal !== undefined && cellVal !== null && cellVal !== '') {
+                hasData = true;
+                if (field.field_type === 'date' && cellVal instanceof Date) {
+                  entryData[field.id] = format(cellVal, 'yyyy-MM-dd');
+                } else if (field.field_type === 'checkbox') {
+                  entryData[field.id] = (String(cellVal).toLowerCase() === 'yes' || cellVal === true);
+                } else if ((field.field_type === 'image' || field.field_type === 'file') || typeof cellVal === 'string') {
+                  // Relaxed check: valid string in File/Image field = Link
+                  if ((field.field_type === 'image' || field.field_type === 'file')) {
+                    entryData[field.id] = {
+                      fileName: 'Link',
+                      webViewLink: cellVal,
+                      url: cellVal
+                    };
+                  } else {
+                    entryData[field.id] = cellVal;
+                  }
+                } else {
+                  entryData[field.id] = cellVal;
+                }
+              }
             });
-            successCount++;
-          }
-        }));
+
+            if (hasData) {
+              await createEntry.mutateAsync({
+                menu_id: menuId,
+                data: entryData,
+                created_at: entryDate
+              });
+              successCount++;
+            }
+          }));
+        }
 
         toast.dismiss(toastId);
         if (successCount > 0) {
-          toast.success(`Successfully imported ${successCount} entries.`);
-          if (missingColumns.length > 0) {
-            toast.warning(`Warning: Columns not found for fields: ${missingColumns.join(', ')}`);
-          }
+          toast.success(`Imported ${successCount} entries.`, {
+            description: missingColumns.length > 0
+              ? `Missing columns: ${missingColumns.join(', ')}`
+              : 'All columns matched successfully.',
+            duration: 5000,
+          });
+          // Show detailed mapping in console for the user to screenshot if needed
+          console.log('Import Summary:', { successCount, mappingDebug, missingColumns });
         } else {
-          toast.error('No valid entries found to import.');
-          if (missingColumns.length > 0) {
-            toast.warning(`Check column headers. Missing: ${missingColumns.join(', ')}`);
-          }
+          toast.error('No valid entries imported.', {
+            description: `Check headers. Detected: ${missingColumns.length ? 'Missing ' + missingColumns.join(', ') : 'None'}`,
+          });
         }
         if (fileInputRef.current) fileInputRef.current.value = '';
       } catch (error) {
