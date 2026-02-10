@@ -97,11 +97,10 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
           let entryDate: Date | undefined = undefined;
 
           // Find keys in the row that match potential date columns
-          // SheetJS keys might have extra spaces
           const rowKeys = Object.keys(row);
-          const findKey = (target: string) => rowKeys.find(k => k.trim().toLowerCase() === target.toLowerCase());
+          const findKeyExact = (target: string) => rowKeys.find(k => k.trim().toLowerCase() === target.trim().toLowerCase());
 
-          const dateKey = findKey('Date') || findKey('Timestamp') || findKey('Waktu') || findKey('Tanggal');
+          const dateKey = findKeyExact('Date') || findKeyExact('Timestamp') || findKeyExact('Waktu') || findKeyExact('Tanggal');
           const dateVal = dateKey ? row[dateKey] : undefined;
 
           if (dateVal instanceof Date) {
@@ -111,11 +110,36 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
             if (!isNaN(parsed.getTime())) entryDate = parsed;
           }
 
+          // Helper for smart column matching
+          const findBestMatch = (label: string) => {
+            const cleanLabel = label.trim().toLowerCase();
+
+            // 1. Exact Match
+            const exact = rowKeys.find(k => k.trim().toLowerCase() === cleanLabel);
+            if (exact) return exact;
+
+            // 2. Label contains Header (e.g. Label: "Area Kebersihan" -> Header: "Area")
+            // We look for a header key that is contained within the label
+            // We obey length to avoid matching short common words like "No" to "Notes" if "Notes" is the label.
+            // We prefer longer matches.
+            const labelContains = rowKeys
+              .filter(k => k.trim().length > 2 && cleanLabel.includes(k.trim().toLowerCase()))
+              .sort((a, b) => b.length - a.length)[0];
+            if (labelContains) return labelContains;
+
+            // 3. Header contains Label (e.g. Label: "Area" -> Header: "Area Kerja")
+            const headerContains = rowKeys
+              .filter(k => k.trim().toLowerCase().includes(cleanLabel))
+              .sort((a, b) => a.length - b.length)[0]; // prefer shortest match (closer to exact)
+            if (headerContains) return headerContains;
+
+            return undefined;
+          };
+
           // Map fields
           let hasData = false;
           fields.forEach(field => {
-            // Fuzzy match header
-            const matchedKey = findKey(field.label);
+            const matchedKey = findBestMatch(field.label);
             const cellVal = matchedKey ? row[matchedKey] : undefined;
 
             if (cellVal !== undefined && cellVal !== null && cellVal !== '') {
@@ -125,18 +149,16 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
               } else if (field.field_type === 'checkbox') {
                 entryData[field.id] = (String(cellVal).toLowerCase() === 'yes' || cellVal === true);
               } else if ((field.field_type === 'image' || field.field_type === 'file') && typeof cellVal === 'string') {
-                // Fix for Google Drive links / URLs
                 entryData[field.id] = {
                   fileName: 'Link',
                   webViewLink: cellVal,
                   url: cellVal
                 };
               } else {
-                entryData[field.id] = cellVal; // text, number, select, etc.
+                entryData[field.id] = cellVal;
               }
             }
           });
-
           if (hasData) {
             await createEntry.mutateAsync({
               menu_id: menuId,
