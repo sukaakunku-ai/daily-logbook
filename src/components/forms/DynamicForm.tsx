@@ -29,7 +29,8 @@ interface DynamicFormProps {
 }
 
 export function DynamicForm({ menuId, editingEntry, onSuccess, formSettings }: DynamicFormProps) {
-  const { fields, isLoading: fieldsLoading } = useFormFields(menuId);
+  const { fields: allFields, isLoading: fieldsLoading } = useFormFields(menuId);
+  const fields = allFields.filter(f => f.field_type !== 'icon_link');
   const { createEntry, updateEntry } = useEntries(menuId);
   const [formData, setFormData] = useState<Record<string, unknown>>(editingEntry?.data ?? {});
   const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
@@ -168,17 +169,25 @@ export function DynamicForm({ menuId, editingEntry, onSuccess, formSettings }: D
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {fields.map((field) => (
-            <div key={field.id} className="space-y-2">
-              <Label htmlFor={field.id}>
-                {field.label}
-                {field.required && <span className="text-destructive ml-1">*</span>}
-              </Label>
-              {renderField(field, formData[field.id], handleChange, handleFileUpload, uploadingFiles.has(field.id))}
-            </div>
-          ))}
-          <div className="pt-4">
+        <form onSubmit={handleSubmit} className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {fields.map((field) => {
+            const isIconLink = field.field_type === 'icon_link';
+            return (
+              <div
+                key={field.id}
+                className={isIconLink ? 'col-span-1' : 'col-span-full space-y-2'}
+              >
+                {!isIconLink && (
+                  <Label htmlFor={field.id}>
+                    {field.label}
+                    {field.required && <span className="text-destructive ml-1">*</span>}
+                  </Label>
+                )}
+                {renderField(field, formData[field.id], handleChange, handleFileUpload, uploadingFiles.has(field.id))}
+              </div>
+            );
+          })}
+          <div className="col-span-full pt-4">
             <Button type="submit" disabled={isSubmitting || uploadingFiles.size > 0}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editingEntry ? 'Save Changes' : 'Submit Entry'}
@@ -384,6 +393,25 @@ function renderField(
             </a>
           )}
         </div>
+      );
+    case 'icon_link':
+      const [iconUrl, targetUrl] = field.options || [];
+      return (
+        <a
+          href={targetUrl || '#'}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex flex-col items-center justify-center p-6 border rounded-xl hover:bg-muted/50 hover:shadow-md transition-all group cursor-pointer no-underline text-foreground"
+        >
+          <div className="w-16 h-16 mb-3 relative flex items-center justify-center bg-primary/10 rounded-full group-hover:scale-110 transition-transform">
+            {iconUrl ? (
+              <img src={iconUrl} alt={field.label} className="w-10 h-10 object-contain" />
+            ) : (
+              <span className="text-2xl font-bold text-primary">🔗</span>
+            )}
+          </div>
+          <span className="text-sm font-medium text-center">{field.label}</span>
+        </a>
       );
     default:
       return null;

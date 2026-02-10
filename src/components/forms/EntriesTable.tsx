@@ -57,7 +57,9 @@ interface EntriesTableProps {
 }
 
 export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
-  const { fields, isLoading: fieldsLoading } = useFormFields(menuId);
+  const { fields: allFields, isLoading: fieldsLoading } = useFormFields(menuId);
+  // Exclude static fields like icon_link from the table
+  const fields = allFields.filter(f => f.field_type !== 'icon_link');
   const { entries, isLoading: entriesLoading, deleteEntry, createEntry, deleteAllEntries } = useEntries(menuId);
   const [search, setSearch] = useState('');
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});

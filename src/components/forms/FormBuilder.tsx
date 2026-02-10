@@ -19,6 +19,7 @@ import {
   Image as ImageIcon,
   ArrowUp,
   ArrowDown,
+  Link,
 } from 'lucide-react';
 import { useFormFields, FormField, FieldType, CreateFieldInput, UpdateFieldInput } from '@/hooks/useFormFields';
 import { AddFieldDialog } from './AddFieldDialog';
@@ -43,6 +44,7 @@ const FIELD_ICONS: Record<FieldType, React.ElementType> = {
   checkbox: CheckSquare,
   file: Upload,
   image: ImageIcon,
+  icon_link: Link,
 };
 
 const FIELD_LABELS: Record<FieldType, string> = {
@@ -55,6 +57,7 @@ const FIELD_LABELS: Record<FieldType, string> = {
   checkbox: 'Checkbox',
   file: 'File Upload',
   image: 'Image Upload',
+  icon_link: 'Icon Link',
 };
 
 interface FormBuilderProps {

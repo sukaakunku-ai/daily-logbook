@@ -31,6 +31,7 @@ const FIELD_TYPES: { value: FieldType; label: string }[] = [
   { value: 'select', label: 'Dropdown' },
   { value: 'checkbox', label: 'Checkbox' },
   { value: 'file', label: 'File Upload' },
+  { value: 'icon_link', label: 'Icon Link' },
 ];
 
 interface AddFieldDialogProps {
@@ -80,13 +81,15 @@ export function AddFieldDialog({
     e.preventDefault();
     if (!label.trim()) return;
 
+    const includeOptions = fieldType === 'select' || fieldType === 'checkbox' || fieldType === 'icon_link';
+
     if (editingField) {
       onSubmit({
         id: editingField.id,
         label: label.trim(),
         field_type: fieldType,
         required,
-        options: (fieldType === 'select' || fieldType === 'checkbox') ? options : [],
+        options: includeOptions ? options : [],
       });
     } else {
       onSubmit({
@@ -94,7 +97,7 @@ export function AddFieldDialog({
         label: label.trim(),
         field_type: fieldType,
         required,
-        options: (fieldType === 'select' || fieldType === 'checkbox') ? options : [],
+        options: includeOptions ? options : [],
       });
     }
     handleClose();
@@ -123,6 +126,41 @@ export function AddFieldDialog({
                 required
               />
             </div>
+
+            {fieldType === 'icon_link' && (
+              <div className="space-y-4 border p-4 rounded-md bg-muted/20">
+                <div className="space-y-2">
+                  <Label htmlFor="iconUrl">Icon URL / Image Link</Label>
+                  <Input
+                    id="iconUrl"
+                    placeholder="https://example.com/icon.png"
+                    value={options[0] || ''}
+                    onChange={(e) => {
+                      const newOpts = [...options];
+                      newOpts[0] = e.target.value;
+                      setOptions(newOpts);
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">URL of the image to display.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="targetUrl">Target Link</Label>
+                  <Input
+                    id="targetUrl"
+                    placeholder="https://google.com"
+                    value={options[1] || ''}
+                    onChange={(e) => {
+                      const newOpts = [...options];
+                      if (!newOpts[0]) newOpts[0] = ''; // Ensure index 0 exists
+                      newOpts[1] = e.target.value;
+                      setOptions(newOpts);
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">URL to open when clicked.</p>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="type">Field Type</Label>
               <Select value={fieldType} onValueChange={(v) => setFieldType(v as FieldType)}>

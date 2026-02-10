@@ -12,17 +12,21 @@ import { Entry } from '@/hooks/useEntries';
 import { AddMenuDialog } from '@/components/menus/AddMenuDialog';
 import { FormSettingsDialog } from '@/components/menus/FormSettingsDialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { QuickLinks } from '@/components/forms/QuickLinks';
+import { useFormFields } from '@/hooks/useFormFields';
 
 export default function MenuDetail() {
   const { menuId } = useParams();
   const navigate = useNavigate();
-  const { menus, isLoading } = useMenus();
+  const { menus, isLoading: menusLoading } = useMenus();
+  const { fields, isLoading: fieldsLoading } = useFormFields(menuId);
   const [activeTab, setActiveTab] = useState('entries');
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
   const [addSubMenuOpen, setAddSubMenuOpen] = useState(false);
   const [formSettingsOpen, setFormSettingsOpen] = useState(false);
 
   const menu = menus.find((m) => m.id === menuId);
+  const isLoading = menusLoading || fieldsLoading;
 
   const handleEditEntry = (entry: Entry) => {
     setEditingEntry(entry);
@@ -83,6 +87,8 @@ export default function MenuDetail() {
             </Button>
           </div>
         </div>
+
+        <QuickLinks fields={fields} />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList>
