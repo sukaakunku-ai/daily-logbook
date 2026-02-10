@@ -19,8 +19,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Loader2, Upload } from 'lucide-react';
 import type { FieldType, FormField, CreateFieldInput, UpdateFieldInput } from '@/hooks/useFormFields';
+import { toast } from 'sonner';
 
 const FIELD_TYPES: { value: FieldType; label: string }[] = [
   { value: 'text', label: 'Text' },
@@ -56,6 +57,7 @@ export function AddFieldDialog({
   const [required, setRequired] = useState(editingField?.required ?? false);
   const [options, setOptions] = useState<string[]>(editingField?.options ?? []);
   const [newOption, setNewOption] = useState('');
+  const [isUploadingIcon, setIsUploadingIcon] = useState(false);
 
   const handleClose = () => {
     setLabel('');
@@ -63,7 +65,44 @@ export function AddFieldDialog({
     setRequired(false);
     setOptions([]);
     setNewOption('');
+    setIsUploadingIcon(false);
     onOpenChange(false);
+  };
+
+  const handleIconUpload = async (file: File) => {
+    setIsUploadingIcon(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'X-Menu-Id': menuId,
+          'X-Field-Label': 'Icon Link Image',
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
+      }
+
+      const result = await response.json();
+      const imageUrl = result.url || result.webViewLink.replace('/view', '/preview');
+
+      const newOpts = [...options];
+      newOpts[0] = imageUrl;
+      setOptions(newOpts);
+
+      toast.success('Icon uploaded successfully');
+    } catch (error) {
+      console.error('Icon upload error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload icon');
+    } finally {
+      setIsUploadingIcon(false);
+    }
   };
 
   const handleAddOption = () => {
@@ -130,18 +169,37 @@ export function AddFieldDialog({
             {fieldType === 'icon_link' && (
               <div className="space-y-4 border p-4 rounded-md bg-muted/20">
                 <div className="space-y-2">
-                  <Label htmlFor="iconUrl">Icon URL / Image Link</Label>
-                  <Input
-                    id="iconUrl"
-                    placeholder="https://example.com/icon.png"
-                    value={options[0] || ''}
-                    onChange={(e) => {
-                      const newOpts = [...options];
-                      newOpts[0] = e.target.value;
-                      setOptions(newOpts);
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground">URL of the image to display.</p>
+                  <Label htmlFor="iconFile">Icon / Image</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="iconFile"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleIconUpload(file);
+                      }}
+                      disabled={isUploadingIcon}
+                    />
+                    {isUploadingIcon && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+                  </div>
+                  {options[0] && (
+                    <div className="mt-2 w-16 h-16 border rounded-lg overflow-hidden bg-white/50 flex items-center justify-center p-2 relative group">
+                      <img src={options[0]} alt="Icon Preview" className="max-w-full max-h-full object-contain" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newOpts = [...options];
+                          newOpts[0] = '';
+                          setOptions(newOpts);
+                        }}
+                        className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">Upload the image for the icon.</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="targetUrl">Target Link</Label>
@@ -226,7 +284,7 @@ export function AddFieldDialog({
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!label.trim() || isPending}>
+            <Button type="submit" disabled={!label.trim() || isPending || isUploadingIcon}>
               {editingField ? 'Save Changes' : 'Add Field'}
             </Button>
           </DialogFooter>
