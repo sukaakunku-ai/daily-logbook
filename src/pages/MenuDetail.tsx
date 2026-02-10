@@ -30,6 +30,7 @@ export default function MenuDetail() {
 
   const menu = menus.find((m) => m.id === menuId);
   const isLoading = menusLoading || fieldsLoading;
+  const hasIconLink = fields.some(f => f.field_type === 'icon_link');
 
   const handleEditEntry = (entry: Entry) => {
     if (!isAdmin) return; // Only admin can edit
@@ -80,7 +81,7 @@ export default function MenuDetail() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight">{menu.name}</h1>
               <p className="text-muted-foreground">
-                {isAdmin ? 'Manage form fields and view entries' : 'View entries and submit data'}
+                {isAdmin ? 'Manage form fields and view entries' : 'View links and data'}
               </p>
             </div>
           </div>
@@ -96,54 +97,57 @@ export default function MenuDetail() {
 
         <QuickLinks fields={fields} />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="entries" className="gap-2">
-              <List className="h-4 w-4" />
-              Entries
-            </TabsTrigger>
-            <TabsTrigger value="submit" className="gap-2">
-              <Plus className="h-4 w-4" />
-              {editingEntry ? 'Edit Entry' : 'Submit Entry'}
-            </TabsTrigger>
-            {isAdmin && (
-              <TabsTrigger value="form-builder" className="gap-2">
-                <Settings2 className="h-4 w-4" />
-                Form Builder
+        {/* Hide entries and submit entry if user is not admin and menu has icon links */}
+        {(!hasIconLink || isAdmin) && (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="entries" className="gap-2">
+                <List className="h-4 w-4" />
+                Entries
               </TabsTrigger>
-            )}
-          </TabsList>
+              <TabsTrigger value="submit" className="gap-2">
+                <Plus className="h-4 w-4" />
+                {editingEntry ? 'Edit Entry' : 'Submit Entry'}
+              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="form-builder" className="gap-2">
+                  <Settings2 className="h-4 w-4" />
+                  Form Builder
+                </TabsTrigger>
+              )}
+            </TabsList>
 
-          <TabsContent value="entries" className="space-y-4">
-            <EntriesTable menuId={menuId!} onEdit={handleEditEntry} />
-          </TabsContent>
-
-          <TabsContent value="submit" className="space-y-4">
-            <DynamicForm
-              menuId={menuId!}
-              editingEntry={editingEntry}
-              onSuccess={handleFormSuccess}
-              formSettings={menu.form_settings}
-            />
-            {editingEntry && (
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => {
-                  setEditingEntry(null);
-                }}
-              >
-                Cancel Edit
-              </Button>
-            )}
-          </TabsContent>
-
-          {isAdmin && (
-            <TabsContent value="form-builder" className="space-y-4">
-              <FormBuilder menuId={menuId!} />
+            <TabsContent value="entries" className="space-y-4">
+              <EntriesTable menuId={menuId!} onEdit={handleEditEntry} />
             </TabsContent>
-          )}
-        </Tabs>
+
+            <TabsContent value="submit" className="space-y-4">
+              <DynamicForm
+                menuId={menuId!}
+                editingEntry={editingEntry}
+                onSuccess={handleFormSuccess}
+                formSettings={menu.form_settings}
+              />
+              {editingEntry && (
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => {
+                    setEditingEntry(null);
+                  }}
+                >
+                  Cancel Edit
+                </Button>
+              )}
+            </TabsContent>
+
+            {isAdmin && (
+              <TabsContent value="form-builder" className="space-y-4">
+                <FormBuilder menuId={menuId!} />
+              </TabsContent>
+            )}
+          </Tabs>
+        )}
 
         {!menu.parentId && (
           <div className="space-y-4 pt-6">
