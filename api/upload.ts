@@ -38,13 +38,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             secure: true,
         });
 
-        console.log('Starting Cloudinary upload...');
+        // Extract metadata for naming
+        const menuId = (req.headers['x-menu-id'] as string || 'default').replace(/[^a-zA-Z0-9]/g, '_');
+        const fieldLabel = (req.headers['x-field-label'] as string || 'file').replace(/[^a-zA-Z0-9]/g, '_');
+        const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const originalName = file.originalFilename?.split('.')[0].replace(/[^a-zA-Z0-9]/g, '_') || 'upload';
+
+        // Construct descriptive Public ID: menu_formlabel_date_filename
+        const customPublicId = `${menuId}_${fieldLabel}_${timestamp}_${originalName}`;
+
+        console.log('Starting Cloudinary upload with ID:', customPublicId);
 
         // Upload to Cloudinary
         const result = await cloudinary.uploader.upload(file.filepath, {
             folder: 'daily-logbook', // Optional: subfolder in Cloudinary
             resource_type: 'auto',   // Automatically detect if it's image, video, or raw file
-            public_id: `${Date.now()}-${file.originalFilename?.replace(/[^a-zA-Z0-9]/g, '_')}`,
+            public_id: customPublicId,
         });
 
         console.log('Cloudinary upload successful:', result.public_id);

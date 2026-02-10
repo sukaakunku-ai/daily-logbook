@@ -43,6 +43,10 @@ export function DynamicForm({ menuId, editingEntry, onSuccess }: DynamicFormProp
 
       const response = await fetch('/api/upload', {
         method: 'POST',
+        headers: {
+          'X-Menu-Id': menuId,
+          'X-Field-Label': field.label,
+        },
         body: formData,
       });
 
