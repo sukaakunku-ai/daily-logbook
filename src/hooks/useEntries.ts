@@ -28,6 +28,7 @@ export interface Entry {
 export interface CreateEntryInput {
   menu_id: string;
   data: Record<string, unknown>;
+  created_at?: Date;
 }
 
 export interface UpdateEntryInput {
@@ -67,7 +68,7 @@ export function useEntries(menuId: string | undefined) {
         menu_id: input.menu_id,
         user_id: user.uid,
         data: input.data,
-        created_at: serverTimestamp(),
+        created_at: input.created_at ? Timestamp.fromDate(input.created_at) : serverTimestamp(),
         updated_at: serverTimestamp(),
       });
       return { id: docRef.id };

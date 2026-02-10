@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,10 +43,11 @@ import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import { Download, Filter, Calendar as CalendarIcon, X } from 'lucide-react';
+import { Download, Filter, Calendar as CalendarIcon, X, Upload } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const PAGE_SIZE = 10;
 
@@ -57,7 +58,7 @@ interface EntriesTableProps {
 
 export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
   const { fields, isLoading: fieldsLoading } = useFormFields(menuId);
-  const { entries, isLoading: entriesLoading, deleteEntry } = useEntries(menuId);
+  const { entries, isLoading: entriesLoading, deleteEntry, createEntry } = useEntries(menuId);
   const [search, setSearch] = useState('');
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortField, setSortField] = useState<string>('created_at');
@@ -68,6 +69,77 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
     from: undefined,
     to: undefined,
   });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary', cellDates: true });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+
+        let successCount = 0;
+        const toastId = toast.loading(`Importing ${data.length} entries...`);
+
+        await Promise.all(data.map(async (row: any) => {
+          const entryData: Record<string, any> = {};
+          let entryDate: Date | undefined = undefined;
+
+          // Check for Date column (created_at)
+          if (row['Date'] && row['Date'] instanceof Date) {
+            entryDate = row['Date'];
+          } else if (row['Date']) {
+            const parsed = new Date(row['Date']);
+            if (!isNaN(parsed.getTime())) entryDate = parsed;
+          }
+
+          // Map fields
+          let hasData = false;
+          fields.forEach(field => {
+            const cellVal = row[field.label];
+            if (cellVal !== undefined) {
+              hasData = true;
+              if (field.field_type === 'date' && cellVal instanceof Date) {
+                entryData[field.id] = format(cellVal, 'yyyy-MM-dd');
+              } else if (field.field_type === 'checkbox') {
+                entryData[field.id] = (cellVal === 'Yes' || cellVal === true);
+              } else {
+                entryData[field.id] = cellVal; // text, number, select, etc.
+              }
+            }
+          });
+
+          if (hasData) {
+            await createEntry.mutateAsync({
+              menu_id: menuId,
+              data: entryData,
+              created_at: entryDate
+            });
+            successCount++;
+          }
+        }));
+
+        toast.dismiss(toastId);
+        toast.success(`Successfully imported ${successCount} entries.`);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      } catch (error) {
+        console.error('Import error:', error);
+        toast.error('Failed to import file');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
 
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -272,7 +344,7 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
         header.length,
         ...data.map(row => {
           const cell = row[i];
-          const cellContent = (cell && typeof cell === 'object' && 'v' in cell) ? cell.v : String(cell ?? '');
+          const cellContent = (cell && typeof cell === 'object' && 'v' in cell) ? String(cell.v) : String(cell ?? '');
           return cellContent.length;
         })
       );
@@ -458,6 +530,18 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
               <Button variant="outline" onClick={exportToExcel} disabled={filteredAndSortedEntries.length === 0}>
                 <Download className="mr-2 h-4 w-4" />
                 Excel
+              </Button>
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept=".xlsx, .xls"
+                onChange={handleFileUpload}
+              />
+              <Button variant="outline" onClick={handleImportClick} disabled={fields.length === 0}>
+                <Upload className="mr-2 h-4 w-4" />
+                Import
               </Button>
 
               <div className="relative w-full sm:w-64">
