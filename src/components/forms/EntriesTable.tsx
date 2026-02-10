@@ -144,30 +144,34 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
             const cleanLabel = label.trim().toLowerCase();
             const normLabel = normalize(label);
 
-            // 0. Manual Aliases for common fields
-            if (normLabel === 'area' || normLabel === 'lokasi') {
-              const aliasMatch = rowKeys.find(k => {
+            // 0. Manual Aliases & Specific "Area" fix
+            if (normLabel.includes('area') || normLabel.includes('lokasi') || normLabel.includes('wilayah')) {
+              // Prefer exact 'area' if available
+              const exactArea = rowKeys.find(k => normalize(k) === 'area');
+              if (exactArea) return exactArea;
+
+              const areaMatch = rowKeys.find(k => {
                 const nk = normalize(k);
-                return nk === 'area' || nk === 'lokasi' || nk === 'location' || nk === 'tempat';
+                return nk.includes('area') || nk.includes('lokasi') || nk.includes('location') || nk.includes('tempat') || nk.includes('subarea');
               });
-              if (aliasMatch) return aliasMatch;
+              if (areaMatch) return areaMatch;
             }
 
             // 1. Exact Match (Trimmed & Case-insensitive)
             const exact = rowKeys.find(k => k.trim().toLowerCase() === cleanLabel);
             if (exact) return exact;
 
-            // 2. Normalized Match (ignores spaces and Symbols)
+            // 2. Normalized Match
             const normMatch = rowKeys.find(k => normalize(k) === normLabel);
             if (normMatch) return normMatch;
 
-            // 3. Label contains Header (long label, short header)
+            // 3. Label contains Header
             const labelContains = rowKeys
               .filter(k => k.trim().length > 1 && cleanLabel.includes(k.trim().toLowerCase()))
               .sort((a, b) => b.length - a.length)[0];
             if (labelContains) return labelContains;
 
-            // 4. Header contains Label (short label, long header)
+            // 4. Header contains Label
             const headerContains = rowKeys
               .filter(k => k.trim().toLowerCase().includes(cleanLabel))
               .sort((a, b) => a.length - b.length)[0];
