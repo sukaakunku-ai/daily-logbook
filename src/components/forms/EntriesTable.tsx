@@ -40,6 +40,12 @@ import { FileText, Search, MoreVertical, Pencil, Trash2, ArrowUpDown, ExternalLi
 import { useFormFields, FormField } from '@/hooks/useFormFields';
 import { useEntries, Entry } from '@/hooks/useEntries';
 import { format } from 'date-fns';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Download, Filter, Calendar as CalendarIcon, X } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 const PAGE_SIZE = 10;
 
@@ -56,6 +62,10 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [deletingEntry, setDeletingEntry] = useState<Entry | null>(null);
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
 
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -68,6 +78,23 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
 
   const filteredAndSortedEntries = useMemo(() => {
     let result = [...entries];
+
+    // Filter by Date Range
+    if (dateRange.from) {
+      const fromTime = new Date(dateRange.from).setHours(0, 0, 0, 0);
+      result = result.filter((entry) => {
+        const entryTime = new Date(entry.created_at).getTime();
+        return entryTime >= fromTime;
+      });
+    }
+
+    if (dateRange.to) {
+      const toTime = new Date(dateRange.to).setHours(23, 59, 59, 999);
+      result = result.filter((entry) => {
+        const entryTime = new Date(entry.created_at).getTime();
+        return entryTime <= toTime;
+      });
+    }
 
     // Search
     if (search.trim()) {
@@ -107,7 +134,51 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
     });
 
     return result;
-  }, [entries, search, sortField, sortDirection]);
+  }, [entries, search, sortField, sortDirection, dateRange]);
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+
+    // Add Title
+    doc.setFontSize(18);
+    doc.text('Entries Report', 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Generated on ${format(new Date(), 'MMM d, yyyy HH:mm')}`, 14, 30);
+
+    if (dateRange.from || dateRange.to) {
+      const fromStr = dateRange.from ? format(dateRange.from, 'MMM d, yyyy') : 'Start';
+      const toStr = dateRange.to ? format(dateRange.to, 'MMM d, yyyy') : 'Now';
+      doc.text(`Filter: ${fromStr} - ${toStr}`, 14, 38);
+    }
+
+    // Prepare Table Data
+    const tableColumn = ['Date', ...fields.map(f => f.label)];
+    const tableRows: any[] = [];
+
+    filteredAndSortedEntries.forEach(entry => {
+      const rowData = [
+        format(new Date(entry.created_at), 'MMM d, yyyy HH:mm'),
+        ...fields.map(field => {
+          const val = entry.data[field.id];
+          if (Array.isArray(val)) return val.join(', ');
+          if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+          if (typeof val === 'object' && val !== null) return 'File'; // Simplify objects/files
+          return val ?? '-';
+        })
+      ];
+      tableRows.push(rowData);
+    });
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: dateRange.from || dateRange.to ? 45 : 40,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [41, 128, 185] }, // Blue theme match
+    });
+
+    doc.save('entries-report.pdf');
+  };
 
   const totalPages = Math.ceil(filteredAndSortedEntries.length / PAGE_SIZE);
   const paginatedEntries = filteredAndSortedEntries.slice(
@@ -196,24 +267,81 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
     <>
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <CardTitle>All Entries</CardTitle>
-              <CardDescription>
-                {filteredAndSortedEntries.length} entries total
-              </CardDescription>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle>All Entries</CardTitle>
+                <CardDescription>
+                  {filteredAndSortedEntries.length} entries total
+                </CardDescription>
+              </div>
             </div>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search entries..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="pl-9"
-              />
+
+            <div className="flex flex-col sm:flex-row gap-2 w-full">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn(
+                    "justify-start text-left font-normal w-full sm:w-[240px]",
+                    !dateRange.from && "text-muted-foreground"
+                  )}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "LLL dd, y")} -{" "}
+                          {format(dateRange.to, "LLL dd, y")}
+                        </>
+                      ) : (
+                        format(dateRange.from, "LLL dd, y")
+                      )
+                    ) : (
+                      <span>Pick a date range</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange.from}
+                    selected={dateRange}
+                    onSelect={(range: any) => setDateRange(range || { from: undefined, to: undefined })}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {(dateRange.from || dateRange.to) && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setDateRange({ from: undefined, to: undefined })}
+                  className="shrink-0"
+                  title="Clear date filter"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+
+              <div className="flex-1"></div>
+
+              <Button variant="outline" onClick={exportToPDF} disabled={filteredAndSortedEntries.length === 0}>
+                <Download className="mr-2 h-4 w-4" />
+                Export PDF
+              </Button>
+
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search entries..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="pl-9"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
