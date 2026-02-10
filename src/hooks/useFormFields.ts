@@ -17,7 +17,7 @@ import {
 import { db } from '@/lib/firebase';
 import { toast } from 'sonner';
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'date' | 'time' | 'select' | 'checkbox' | 'file';
+export type FieldType = 'text' | 'textarea' | 'number' | 'date' | 'time' | 'select' | 'checkbox' | 'file' | 'image';
 
 export interface FormField {
   id: string;

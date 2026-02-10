@@ -272,6 +272,24 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
         return typeof value === 'string' ? format(new Date(value), 'MMM d, yyyy') : String(value);
       case 'time':
         return String(value);
+      case 'image':
+        const imgData = value as { fileName?: string; webViewLink?: string; url?: string };
+        if (imgData?.webViewLink) {
+          return (
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground truncate max-w-[150px]">{imgData.fileName}</span>
+              <a
+                href={imgData.webViewLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline inline-flex items-center gap-1 text-xs"
+              >
+                View Image <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          );
+        }
+        return '-';
       default:
         return String(value);
     }

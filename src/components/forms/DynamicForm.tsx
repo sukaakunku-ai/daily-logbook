@@ -319,6 +319,52 @@ function renderField(
           )}
         </div>
       );
+    case 'image':
+      const imageValue = value as { fileName?: string; webViewLink?: string; url?: string } | undefined;
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Input
+              id={field.id}
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) onFileUpload(field, file);
+              }}
+              disabled={isUploading}
+              className="flex-1"
+            />
+            {isUploading && <Loader2 className="h-4 w-4 animate-spin" />}
+          </div>
+          {imageValue?.webViewLink && (
+            <div className="relative aspect-video w-full max-w-sm rounded-lg overflow-hidden border bg-muted">
+              <img
+                src={imageValue.url || imageValue.webViewLink.replace('/view', '/preview')}
+                alt="Preview"
+                className="object-cover w-full h-full"
+                onError={(e) => {
+                  // Fallback if direct link fails
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 text-white text-xs truncate">
+                {imageValue.fileName}
+              </div>
+            </div>
+          )}
+          {imageValue?.webViewLink && (
+            <a
+              href={imageValue.webViewLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline inline-flex items-center gap-1 text-sm"
+            >
+              View full image <Upload className="h-3 w-3" />
+            </a>
+          )}
+        </div>
+      );
     default:
       return null;
   }
