@@ -9,6 +9,8 @@ import { FormBuilder } from '@/components/forms/FormBuilder';
 import { DynamicForm } from '@/components/forms/DynamicForm';
 import { EntriesTable } from '@/components/forms/EntriesTable';
 import { Entry } from '@/hooks/useEntries';
+import { AddMenuDialog } from '@/components/menus/AddMenuDialog';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function MenuDetail() {
   const { menuId } = useParams();
@@ -16,6 +18,7 @@ export default function MenuDetail() {
   const { menus, isLoading } = useMenus();
   const [activeTab, setActiveTab] = useState('entries');
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
+  const [addSubMenuOpen, setAddSubMenuOpen] = useState(false);
 
   const menu = menus.find((m) => m.id === menuId);
 
@@ -43,9 +46,9 @@ export default function MenuDetail() {
     return (
       <DashboardLayout>
         <div className="text-center py-12">
-          <h2 className="text-xl font-semibold">Tracker not found</h2>
+          <h2 className="text-xl font-semibold">Menu not found</h2>
           <p className="text-muted-foreground mt-2">
-            The tracker you're looking for doesn't exist.
+            The menu you're looking for doesn't exist.
           </p>
           <Button className="mt-4" onClick={() => navigate('/dashboard')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -115,7 +118,46 @@ export default function MenuDetail() {
             <FormBuilder menuId={menuId!} />
           </TabsContent>
         </Tabs>
+
+        {!menu.parentId && (
+          <div className="space-y-4 pt-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold">Sub-Menus</h2>
+              <Button size="sm" onClick={() => setAddSubMenuOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Sub-Menu
+              </Button>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {menus.filter(m => m.parentId === menuId).length === 0 ? (
+                <div className="col-span-full py-8 text-center border-2 border-dashed rounded-lg bg-muted/50">
+                  <p className="text-muted-foreground italic">No sub-menus yet. Add one to organize deeper.</p>
+                </div>
+              ) : (
+                menus.filter(m => m.parentId === menuId).map((subMenu) => (
+                  <Card
+                    key={subMenu.id}
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => navigate(`/menu/${subMenu.id}`)}
+                  >
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">{subMenu.name}</CardTitle>
+                      <CardDescription>Click to manage this sub-menu</CardDescription>
+                    </CardHeader>
+                  </Card>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
+
+      <AddMenuDialog
+        open={addSubMenuOpen}
+        onOpenChange={setAddSubMenuOpen}
+        parentId={menuId}
+      />
     </DashboardLayout>
   );
 }

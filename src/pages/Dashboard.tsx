@@ -14,10 +14,10 @@ export default function Dashboard() {
 
   const stats = [
     {
-      title: 'Active Trackers',
-      value: menus.length,
+      title: 'Active Menus',
+      value: menus.filter(m => !m.parentId).length,
       icon: ClipboardList,
-      description: 'Custom work trackers',
+      description: 'Main navigation menus',
     },
     {
       title: 'Today',
@@ -37,12 +37,12 @@ export default function Dashboard() {
               <span className="px-2 py-0.5 text-[10px] font-bold bg-green-600 text-white rounded-full">LIVE</span>
             </div>
             <p className="text-muted-foreground">
-              Welcome back! Track your daily work efficiently.
+              Welcome back! Manage your dynamic menus and sub-menus.
             </p>
           </div>
           <Button onClick={() => setAddMenuOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            New Tracker
+            New Menu
           </Button>
         </div>
 
@@ -67,31 +67,31 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Your Trackers</CardTitle>
+            <CardTitle>Your Menus</CardTitle>
             <CardDescription>
-              Quick access to all your work tracking forms
+              Main menus for organizing your data
             </CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">
-                Loading trackers...
+                Loading menus...
               </div>
-            ) : menus.length === 0 ? (
+            ) : menus.filter(m => !m.parentId).length === 0 ? (
               <div className="text-center py-12">
                 <ClipboardList className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                <h3 className="mt-4 text-lg font-semibold">No trackers yet</h3>
+                <h3 className="mt-4 text-lg font-semibold">No menus yet</h3>
                 <p className="text-muted-foreground mt-2">
-                  Create your first tracker to start logging your daily work.
+                  Create your first menu to start organizing your data.
                 </p>
                 <Button className="mt-4" onClick={() => setAddMenuOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Create Tracker
+                  Create Menu
                 </Button>
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {menus.map((menu) => (
+                {menus.filter(m => !m.parentId).map((menu) => (
                   <Card
                     key={menu.id}
                     className="cursor-pointer hover:shadow-md transition-shadow border-border/50"

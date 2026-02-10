@@ -24,6 +24,7 @@ export interface Menu {
   name: string;
   icon: string;
   sort_order: number;
+  parentId?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -59,17 +60,18 @@ export function useMenus() {
   // Show error if query fails - removed useEffect to prevent re-render issues
   if (menusQuery.error) {
     console.error('Firestore Query Error:', menusQuery.error);
-    toast.error('Failed to load trackers: ' + (menusQuery.error as any).message);
+    toast.error('Failed to load menus: ' + (menusQuery.error as any).message);
   }
 
   const createMenu = useMutation({
-    mutationFn: async ({ name, icon = 'file-text' }: { name: string; icon?: string }) => {
+    mutationFn: async ({ name, icon = 'file-text', parentId = null }: { name: string; icon?: string; parentId?: string | null }) => {
       if (!user) throw new Error('Not authenticated');
 
-      // Get max sort_order without requiring composite index
+      // Get max sort_order within the same parent (or top-level)
       const q = query(
         collection(db, 'menus'),
-        where('user_id', '==', user.uid)
+        where('user_id', '==', user.uid),
+        where('parentId', '==', parentId)
       );
       const querySnapshot = await getDocs(q);
       const maxOrder = querySnapshot.empty
@@ -80,6 +82,7 @@ export function useMenus() {
         name,
         icon,
         user_id: user.uid,
+        parentId,
         sort_order: maxOrder + 1,
         created_at: serverTimestamp(),
         updated_at: serverTimestamp(),
