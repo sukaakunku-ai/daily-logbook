@@ -49,21 +49,21 @@ export default function Settings() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
           <p className="text-muted-foreground">
-            Manage your trackers and configure integrations.
+            Manage your menus and configure integrations.
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Manage Trackers</CardTitle>
+            <CardTitle>Manage Menus</CardTitle>
             <CardDescription>
-              Edit, reorder, or delete your work trackers.
+              Edit, reorder, or delete your menus and sub-menus.
             </CardDescription>
           </CardHeader>
           <CardContent>
             {menus.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">
-                No trackers created yet. Go to Dashboard to create one.
+                No menus created yet. Go to Dashboard to create one.
               </p>
             ) : (
               <div className="space-y-2">
@@ -90,9 +90,9 @@ export default function Settings() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Tracker</AlertDialogTitle>
+                          <AlertDialogTitle>Delete Menu</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Are you sure you want to delete "{menu.name}"? This will also delete all entries and form fields. This action cannot be undone.
+                            Are you sure you want to delete "{menu.name}"? This will also delete all sub-menus, entries, and form fields. This action cannot be undone.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -117,10 +117,10 @@ export default function Settings() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Cloud className="h-5 w-5 text-primary" />
-              <CardTitle>Google Drive Integration</CardTitle>
+              <CardTitle>Cloudinary Integration</CardTitle>
             </div>
             <CardDescription>
-              Upload files directly to Google Drive when submitting entries.
+              Upload files directly to Cloudinary when submitting entries.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -128,18 +128,18 @@ export default function Settings() {
               <div className="flex items-start gap-3">
                 <Key className="h-5 w-5 text-accent-foreground mt-0.5" />
                 <div className="space-y-2">
-                  <h4 className="font-medium">Firebase & Google Drive Setup</h4>
+                  <h4 className="font-medium">Cloudinary Configuration</h4>
                   <p className="text-sm text-muted-foreground">
-                    The application is now migrated to Firebase Firestore.
+                    The application uses Cloudinary for secure and fast file storage.
                   </p>
                   <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
-                    <li>Files are stored using Firebase configuration.</li>
-                    <li>Ensure your Firestore rules allow read/write for authenticated users.</li>
+                    <li>Files are stored with custom naming (Menu_Form_Date).</li>
+                    <li>Ensure CLOUDINARY environment variables are set in Vercel.</li>
                   </ol>
                   <Button variant="outline" size="sm" className="mt-2" asChild>
-                    <a href="https://console.cloud.google.com/iam-admin/serviceaccounts" target="_blank" rel="noopener noreferrer">
+                    <a href="https://cloudinary.com/console" target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="mr-2 h-3.5 w-3.5" />
-                      Google Cloud Console
+                      Cloudinary Console
                     </a>
                   </Button>
                 </div>
@@ -152,9 +152,9 @@ export default function Settings() {
       <Dialog open={!!editingMenu} onOpenChange={(open) => !open && setEditingMenu(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Tracker</DialogTitle>
+            <DialogTitle>Edit Menu</DialogTitle>
             <DialogDescription>
-              Update the name of your tracker.
+              Update the name of your menu.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
