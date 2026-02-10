@@ -42,6 +42,7 @@ import { useEntries, Entry } from '@/hooks/useEntries';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import { Download, Filter, Calendar as CalendarIcon, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -178,6 +179,44 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
     });
 
     doc.save('entries-report.pdf');
+  };
+
+  const exportToExcel = () => {
+    // Prepare Data for Excel
+    const data = filteredAndSortedEntries.map(entry => {
+      const row: Record<string, any> = {
+        'Date': format(new Date(entry.created_at), 'MMM d, yyyy HH:mm'),
+      };
+
+      fields.forEach(field => {
+        const val = entry.data[field.id];
+        if (Array.isArray(val)) {
+          row[field.label] = val.join(', ');
+        } else if (typeof val === 'boolean') {
+          row[field.label] = val ? 'Yes' : 'No';
+        } else if (typeof val === 'object' && val !== null) {
+          // For file objects or others, verify structure
+          const fileVal = val as { fileName?: string; webViewLink?: string };
+          row[field.label] = fileVal.fileName || 'File';
+        } else {
+          row[field.label] = val ?? '';
+        }
+      });
+      return row;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Entries");
+
+    // Auto-width columns (simple heuristic)
+    const maxWidth = 50;
+    const colWidths = Object.keys(data[0] || {}).map(key => ({
+      wch: Math.min(maxWidth, Math.max(key.length, ...data.map(r => String(r[key]).length)))
+    }));
+    worksheet['!cols'] = colWidths;
+
+    XLSX.writeFile(workbook, `entries-report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 
   const totalPages = Math.ceil(filteredAndSortedEntries.length / PAGE_SIZE);
@@ -327,7 +366,12 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
 
               <Button variant="outline" onClick={exportToPDF} disabled={filteredAndSortedEntries.length === 0}>
                 <Download className="mr-2 h-4 w-4" />
-                Export PDF
+                PDF
+              </Button>
+
+              <Button variant="outline" onClick={exportToExcel} disabled={filteredAndSortedEntries.length === 0}>
+                <Download className="mr-2 h-4 w-4" />
+                Excel
               </Button>
 
               <div className="relative w-full sm:w-64">

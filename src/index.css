@@ -8,24 +8,31 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Modern Blue Theme - Light Mode */
-    --background: 210 40% 98%;
+    /* Professional Corporate Blue Theme - Light Mode */
+    /* Background: Very subtle cool gray, almost white, for clean look */
+    --background: 210 20% 98%;
+
+    /* Foreground: Deep slate for high readability */
     --foreground: 222 47% 11%;
 
+    /* Card: Pure white for distinct separation */
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary: Strong, trustworthy Corporate Blue (Azure/Royal) */
+    --primary: 215 100% 50%;
+    --primary-foreground: 0 0% 100%;
 
+    /* Secondary: Light slate for subtle elements */
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222 47% 11.2%;
 
+    /* Muted: Backgrounds for inactive items */
     --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted-foreground: 215 16% 47%;
 
     --accent: 210 40% 96.1%;
     --accent-foreground: 222 47% 11.2%;
@@ -35,33 +42,35 @@ All colors MUST be HSL.
 
     --success: 142 72% 29%;
     --success-foreground: 210 40% 98%;
-    
+
     --warning: 38 92% 50%;
     --warning-foreground: 210 40% 98%;
 
+    /* Border: Subtle slate to define edges without noise */
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221 83% 53%;
+    --ring: 215 100% 50%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
+    /* Slightly less rounded for professional feel */
 
-    /* Sidebar - Deep Blue */
+    /* Sidebar: Deep Navy/Slate for professional contrast */
     --sidebar-background: 222 47% 11%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary: 215 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 217 33% 17%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 221 83% 53%;
-    
-    /* Modern Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%) 0%, hsl(210 100% 60%) 100%);
+    --sidebar-ring: 215 100% 50%;
+
+    /* Gradients: Subtle and modern */
+    --gradient-primary: linear-gradient(135deg, hsl(215 100% 50%) 0%, hsl(210 100% 60%) 100%);
     --gradient-sidebar: linear-gradient(180deg, hsl(222 47% 11%) 0%, hsl(220 40% 8%) 100%);
   }
 
   .dark {
-    /* Modern Blue Theme - Dark Mode */
+    /* Professional Corporate Blue Theme - Dark Mode */
     --background: 222 47% 11%;
     --foreground: 210 40% 98%;
 
@@ -71,8 +80,8 @@ All colors MUST be HSL.
     --popover: 217 33% 17%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47.4% 11.2%;
+    --primary: 215 100% 60%;
+    --primary-foreground: 222 47% 11%;
 
     --secondary: 217 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -85,28 +94,27 @@ All colors MUST be HSL.
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    
+
     --success: 142 70% 50%;
     --success-foreground: 222 47% 11%;
-    
+
     --warning: 48 96% 53%;
     --warning-foreground: 222 47% 11%;
 
     --border: 217 32.6% 17.5%;
     --input: 217 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
-    
-    /* Sidebar - Slightly lighter in dark mode to differentiate from main bg */
+    --ring: 215 100% 60%;
+
     --sidebar-background: 220 40% 9%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary: 215 100% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 217 33% 15%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217 33% 15%;
-    --sidebar-ring: 217 91% 60%;
-    
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(217 91% 50%) 100%);
+    --sidebar-ring: 215 100% 60%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(215 100% 60%) 0%, hsl(215 100% 50%) 100%);
     --gradient-sidebar: linear-gradient(180deg, hsl(220 40% 9%) 0%, hsl(220 40% 6%) 100%);
   }
 }
@@ -126,50 +134,57 @@ All colors MUST be HSL.
   .gradient-primary {
     background: var(--gradient-primary);
   }
-  
+
   .gradient-sidebar {
     background: var(--gradient-sidebar);
   }
-  
+
   .text-balance {
     text-wrap: balance;
   }
-  
+
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out;
   }
-  
+
   .animate-slide-up {
     animation: slideUp 0.3s ease-out;
   }
-  
+
   .animate-slide-in-left {
     animation: slideInLeft 0.3s ease-out;
   }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { 
+  from {
     opacity: 0;
     transform: translateY(10px);
   }
-  to { 
+
+  to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
 @keyframes slideInLeft {
-  from { 
+  from {
     opacity: 0;
     transform: translateX(-20px);
   }
-  to { 
+
+  to {
     opacity: 1;
     transform: translateX(0);
   }
