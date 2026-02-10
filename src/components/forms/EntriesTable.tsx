@@ -152,7 +152,7 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
     });
 
     return result;
-  }, [entries, search, sortField, sortDirection, dateRange]);
+  }, [entries, search, sortField, sortDirection, dateRange, columnFilters]);
 
   const exportToPDF = () => {
     const doc = new jsPDF();
