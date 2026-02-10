@@ -127,6 +127,17 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
 
     switch (field.field_type) {
       case 'checkbox':
+        if (Array.isArray(value)) {
+          return (
+            <div className="flex flex-wrap gap-1">
+              {value.map((v) => (
+                <Badge key={v} variant="secondary" className="text-[10px] px-1.5 py-0">
+                  {v}
+                </Badge>
+              ))}
+            </div>
+          );
+        }
         return value ? <Badge>Yes</Badge> : <Badge variant="outline">No</Badge>;
       case 'file':
         const fileData = value as { fileName?: string; webViewLink?: string };

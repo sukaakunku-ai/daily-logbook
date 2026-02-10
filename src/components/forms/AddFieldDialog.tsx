@@ -85,7 +85,7 @@ export function AddFieldDialog({
         label: label.trim(),
         field_type: fieldType,
         required,
-        options: fieldType === 'select' ? options : [],
+        options: (fieldType === 'select' || fieldType === 'checkbox') ? options : [],
       });
     } else {
       onSubmit({
@@ -93,7 +93,7 @@ export function AddFieldDialog({
         label: label.trim(),
         field_type: fieldType,
         required,
-        options: fieldType === 'select' ? options : [],
+        options: (fieldType === 'select' || fieldType === 'checkbox') ? options : [],
       });
     }
     handleClose();
@@ -137,9 +137,9 @@ export function AddFieldDialog({
                 </SelectContent>
               </Select>
             </div>
-            {fieldType === 'select' && (
+            {(fieldType === 'select' || fieldType === 'checkbox') && (
               <div className="space-y-2">
-                <Label>Dropdown Options</Label>
+                <Label>{fieldType === 'select' ? 'Dropdown Options' : 'Checkbox Options'}</Label>
                 <div className="flex gap-2">
                   <Input
                     value={newOption}

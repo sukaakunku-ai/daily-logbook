@@ -237,6 +237,34 @@ function renderField(
         </Select>
       );
     case 'checkbox':
+      if (field.options && field.options.length > 0) {
+        const selectedValues = (value as string[]) ?? [];
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 border rounded-lg bg-muted/30">
+            {field.options.map((option) => (
+              <div key={option} className="flex items-center gap-2">
+                <Checkbox
+                  id={`${field.id}-${option}`}
+                  checked={selectedValues.includes(option)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      onChange(field.id, [...selectedValues, option]);
+                    } else {
+                      onChange(field.id, selectedValues.filter((v) => v !== option));
+                    }
+                  }}
+                />
+                <Label
+                  htmlFor={`${field.id}-${option}`}
+                  className="cursor-pointer font-normal text-sm"
+                >
+                  {option}
+                </Label>
+              </div>
+            ))}
+          </div>
+        );
+      }
       return (
         <div className="flex items-center gap-2">
           <Checkbox
