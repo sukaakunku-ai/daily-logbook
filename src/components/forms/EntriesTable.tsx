@@ -163,7 +163,10 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
           const val = entry.data[field.id];
           if (Array.isArray(val)) return val.join(', ');
           if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-          if (typeof val === 'object' && val !== null) return 'File'; // Simplify objects/files
+          if (typeof val === 'object' && val !== null) {
+            const fileVal = val as { fileName?: string; webViewLink?: string };
+            return fileVal.webViewLink || fileVal.fileName || 'File';
+          }
           return val ?? '-';
         })
       ];
@@ -197,7 +200,7 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
         } else if (typeof val === 'object' && val !== null) {
           // For file objects or others, verify structure
           const fileVal = val as { fileName?: string; webViewLink?: string };
-          row[field.label] = fileVal.fileName || 'File';
+          row[field.label] = fileVal.webViewLink || fileVal.fileName || 'File';
         } else {
           row[field.label] = val ?? '';
         }
