@@ -59,6 +59,7 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
   const { fields, isLoading: fieldsLoading } = useFormFields(menuId);
   const { entries, isLoading: entriesLoading, deleteEntry } = useEntries(menuId);
   const [search, setSearch] = useState('');
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortField, setSortField] = useState<string>('created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -105,6 +106,22 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
         return dataStr.includes(searchLower);
       });
     }
+
+    // Column Filters
+    Object.entries(columnFilters).forEach(([fieldId, filterValue]) => {
+      if (filterValue.trim()) {
+        const lowerFilter = filterValue.toLowerCase();
+        result = result.filter((entry) => {
+          const val = entry.data[fieldId];
+          // Handle object values (files/images) for filtering ideally by filename
+          if (typeof val === 'object' && val !== null) {
+            const fileVal = val as { fileName?: string };
+            return (fileVal.fileName || '').toLowerCase().includes(lowerFilter);
+          }
+          return String(val ?? '').toLowerCase().includes(lowerFilter);
+        });
+      }
+    });
 
     // Sort
     result.sort((a, b) => {
@@ -219,40 +236,52 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
   };
 
   const exportToExcel = () => {
-    // Prepare Data for Excel
-    const data = filteredAndSortedEntries.map(entry => {
-      const row: Record<string, any> = {
-        'Date': format(new Date(entry.created_at), 'MMM d, yyyy HH:mm'),
-      };
+    // Headers
+    const headers = ['Date', ...fields.map(f => f.label)];
 
-      fields.forEach(field => {
-        const val = entry.data[field.id];
-        if (Array.isArray(val)) {
-          row[field.label] = val.join(', ');
-        } else if (typeof val === 'boolean') {
-          row[field.label] = val ? 'Yes' : 'No';
-        } else if (typeof val === 'object' && val !== null) {
-          // For file objects or others, verify structure
-          const fileVal = val as { fileName?: string; webViewLink?: string };
-          row[field.label] = fileVal.webViewLink || fileVal.fileName || 'File';
-        } else {
-          row[field.label] = val ?? '';
-        }
-      });
-      return row;
+    // Data Rows
+    const data = filteredAndSortedEntries.map(entry => {
+      return [
+        format(new Date(entry.created_at), 'MMM d, yyyy HH:mm'),
+        ...fields.map(field => {
+          const val = entry.data[field.id];
+          if (Array.isArray(val)) return val.join(', ');
+          if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+          if (typeof val === 'object' && val !== null) {
+            const fileVal = val as { fileName?: string; webViewLink?: string; url?: string };
+            if (fileVal.webViewLink) {
+              // Create a cell with hyperLink
+              return {
+                v: field.field_type === 'image' ? 'View Image' : 'View File',
+                l: { Target: fileVal.webViewLink },
+                t: 's'
+              };
+            }
+            return fileVal.fileName || '-';
+          }
+          return val ?? '-';
+        })
+      ];
     });
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Entries");
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
 
-    // Auto-width columns (simple heuristic)
-    const maxWidth = 50;
-    const colWidths = Object.keys(data[0] || {}).map(key => ({
-      wch: Math.min(maxWidth, Math.max(key.length, ...data.map(r => String(r[key]).length)))
-    }));
+    // Auto-width
+    const colWidths = headers.map((header, i) => {
+      const maxContent = Math.max(
+        header.length,
+        ...data.map(row => {
+          const cell = row[i];
+          const cellContent = (cell && typeof cell === 'object' && 'v' in cell) ? cell.v : String(cell ?? '');
+          return cellContent.length;
+        })
+      );
+      return { wch: Math.min(50, maxContent + 2) };
+    });
     worksheet['!cols'] = colWidths;
 
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Entries");
     XLSX.writeFile(workbook, `entries-report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 
@@ -463,15 +492,60 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
                     <TableRow>
                       {fields.slice(0, 5).map((field) => (
                         <TableHead key={field.id}>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="-ml-3 h-auto py-1"
-                            onClick={() => handleSort(field.id)}
-                          >
-                            {field.label}
-                            <ArrowUpDown className="ml-2 h-3 w-3" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="-ml-3 h-auto py-1 px-2"
+                              onClick={() => handleSort(field.id)}
+                            >
+                              {field.label}
+                              <ArrowUpDown className="ml-1 h-3 w-3" />
+                            </Button>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
+                                  <Filter className={cn("h-3 w-3", columnFilters[field.id] ? "text-primary fill-primary/20" : "text-muted-foreground")} />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-60 p-3" align="start">
+                                <div className="space-y-2">
+                                  <h4 className="font-medium text-sm">Filter {field.label}</h4>
+                                  <Input
+                                    placeholder={`Filter ${field.label}...`}
+                                    value={columnFilters[field.id] || ''}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setColumnFilters(prev => {
+                                        const next = { ...prev, [field.id]: val };
+                                        if (!val) delete next[field.id];
+                                        return next;
+                                      });
+                                      setCurrentPage(1);
+                                    }}
+                                    className="h-8"
+                                  />
+                                  {columnFilters[field.id] && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setColumnFilters(prev => {
+                                          const next = { ...prev };
+                                          delete next[field.id];
+                                          return next;
+                                        });
+                                        setCurrentPage(1);
+                                      }}
+                                      className="w-full h-7 text-xs"
+                                    >
+                                      Clear Filter
+                                    </Button>
+                                  )}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
                         </TableHead>
                       ))}
                       <TableHead>
