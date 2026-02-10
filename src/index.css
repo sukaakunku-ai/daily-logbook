@@ -55,26 +55,25 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
-    /* Sidebar - Light Mode: Traveloka Blue */
-    --sidebar-background: 200 80% 50%;
-    /* Traveloka Blue */
+    /* Sidebar - Light Mode: Match Primary Button (Blue) */
+    --sidebar-background: 221 83% 53%;
+    /* Primary Blue */
     --sidebar-foreground: 0 0% 100%;
     /* White Text */
-    --sidebar-primary: 200 90% 35%;
-    /* Darker Blue Selection */
-    /* Blue Selection */
+    --sidebar-primary: 221 83% 43%;
+    /* Darker Selection */
     --sidebar-primary-foreground: 0 0% 100%;
     /* White text on selection */
-    --sidebar-accent: 200 85% 45%;
+    --sidebar-accent: 221 83% 48%;
     /* Hover bg */
     --sidebar-accent-foreground: 0 0% 100%;
     /* Hover Text */
-    --sidebar-border: 200 80% 45%;
-    --sidebar-ring: 200 90% 60%;
+    --sidebar-border: 221 83% 48%;
+    --sidebar-ring: 221 83% 53%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(200 80% 50%) 0%, hsl(190 90% 60%) 100%);
-    --gradient-sidebar: linear-gradient(180deg, hsl(200 80% 50%) 0%, hsl(200 80% 40%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%) 0%, hsl(210 100% 60%) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(221 83% 53%) 0%, hsl(221 83% 43%) 100%);
   }
 
   .dark {
