@@ -39,16 +39,10 @@ export function useMenus() {
   const queryClient = useQueryClient();
 
   const menusQuery = useQuery({
-    queryKey: ['menus', user?.uid],
+    queryKey: ['menus'],
     queryFn: async () => {
-      if (!user) {
-        return [];
-      }
-      // Remove orderBy to avoid requiring composite index - we'll sort manually instead
-      const q = query(
-        collection(db, 'menus'),
-        where('user_id', '==', user.uid)
-      );
+      // Fetch all menus to create a shared dashboard
+      const q = query(collection(db, 'menus'));
       const querySnapshot = await getDocs(q);
       const menus = querySnapshot.docs.map(doc => ({
         id: doc.id,
@@ -59,7 +53,7 @@ export function useMenus() {
       // Sort manually by sort_order
       return menus.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
     },
-    enabled: !!user,
+    enabled: true,
   });
 
   // Show error if query fails - removed useEffect to prevent re-render issues

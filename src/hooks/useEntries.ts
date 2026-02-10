@@ -64,10 +64,9 @@ export function useEntries(menuId: string | undefined) {
 
   const createEntry = useMutation({
     mutationFn: async (input: CreateEntryInput) => {
-      if (!user) throw new Error('Not authenticated');
       const docRef = await addDoc(collection(db, 'entries'), {
         menu_id: input.menu_id,
-        user_id: user.uid,
+        user_id: user?.uid || 'guest',
         data: input.data,
         created_at: input.created_at ? Timestamp.fromDate(input.created_at) : serverTimestamp(),
         updated_at: serverTimestamp(),
