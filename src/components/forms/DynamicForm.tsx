@@ -60,7 +60,7 @@ export function DynamicForm({ menuId, editingEntry, onSuccess }: DynamicFormProp
         webViewLink: result.webViewLink,
       });
 
-      toast.success(`File uploaded successfully to Google Drive!`);
+      toast.success(`File uploaded successfully!`);
     } catch (error) {
       console.error('File upload error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to upload file');
