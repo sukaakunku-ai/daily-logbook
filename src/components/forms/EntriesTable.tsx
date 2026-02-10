@@ -91,15 +91,93 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
 
         let successCount = 0;
         const toastId = toast.loading(`Importing ${data.length} entries...`);
+        // Check for missing columns using the first row
+        let missingColumns: string[] = [];
+        if (data.length > 0) {
+          const firstRow = data[0] as Record<string, unknown>;
+          const rowKeys = Object.keys(firstRow);
+          const normalize = (str: string) => str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+          // Helper for smart column matching (replicated from findBestMatch logic)
+          const checkMatch = (label: string) => {
+            const cleanLabel = label.trim().toLowerCase();
+            const normLabel = normalize(label);
+
+            // 0. Manual Aliases for common fields
+            if (normLabel === 'area' || normLabel === 'lokasi') {
+              const aliasMatch = rowKeys.find(k => {
+                const nk = normalize(k);
+                return nk === 'area' || nk === 'lokasi' || nk === 'location' || nk === 'tempat';
+              });
+              if (aliasMatch) return true;
+            }
+
+            // 1. Exact Match (Trimmed & Case-insensitive)
+            if (rowKeys.some(k => k.trim().toLowerCase() === cleanLabel)) return true;
+
+            // 2. Normalized Match (ignores spaces and Symbols)
+            if (rowKeys.some(k => normalize(k) === normLabel)) return true;
+
+            // 3. Label contains Header (long label, short header)
+            if (rowKeys.some(k => k.trim().length > 1 && cleanLabel.includes(k.trim().toLowerCase()))) return true;
+
+            // 4. Header contains Label (short label, long header)
+            if (rowKeys.some(k => k.trim().toLowerCase().includes(cleanLabel))) return true;
+
+            return false;
+          };
+
+          missingColumns = fields.filter(f => !checkMatch(f.label)).map(f => f.label);
+        }
 
         await Promise.all(data.map(async (row: any) => {
           const entryData: Record<string, any> = {};
           let entryDate: Date | undefined = undefined;
 
-          // Find keys in the row that match potential date columns
+          // Find keys in the row
           const rowKeys = Object.keys(row);
-          const findKeyExact = (target: string) => rowKeys.find(k => k.trim().toLowerCase() === target.trim().toLowerCase());
+          console.log('Excel row keys:', rowKeys); // Log row keys for sanity
+          const normalize = (str: string) => str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 
+          // Helper for smart column matching
+          const findBestMatch = (label: string) => {
+            const cleanLabel = label.trim().toLowerCase();
+            const normLabel = normalize(label);
+
+            // 0. Manual Aliases for common fields
+            if (normLabel === 'area' || normLabel === 'lokasi') {
+              const aliasMatch = rowKeys.find(k => {
+                const nk = normalize(k);
+                return nk === 'area' || nk === 'lokasi' || nk === 'location' || nk === 'tempat';
+              });
+              if (aliasMatch) return aliasMatch;
+            }
+
+            // 1. Exact Match (Trimmed & Case-insensitive)
+            const exact = rowKeys.find(k => k.trim().toLowerCase() === cleanLabel);
+            if (exact) return exact;
+
+            // 2. Normalized Match (ignores spaces and Symbols)
+            const normMatch = rowKeys.find(k => normalize(k) === normLabel);
+            if (normMatch) return normMatch;
+
+            // 3. Label contains Header (long label, short header)
+            const labelContains = rowKeys
+              .filter(k => k.trim().length > 1 && cleanLabel.includes(k.trim().toLowerCase()))
+              .sort((a, b) => b.length - a.length)[0];
+            if (labelContains) return labelContains;
+
+            // 4. Header contains Label (short label, long header)
+            const headerContains = rowKeys
+              .filter(k => k.trim().toLowerCase().includes(cleanLabel))
+              .sort((a, b) => a.length - b.length)[0];
+            if (headerContains) return headerContains;
+
+            return undefined;
+          };
+
+          // Date Matching
+          const findKeyExact = (target: string) => rowKeys.find(k => k.trim().toLowerCase() === target.trim().toLowerCase());
           const dateKey = findKeyExact('Date') || findKeyExact('Timestamp') || findKeyExact('Waktu') || findKeyExact('Tanggal');
           const dateVal = dateKey ? row[dateKey] : undefined;
 
@@ -109,32 +187,6 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
             const parsed = new Date(dateVal);
             if (!isNaN(parsed.getTime())) entryDate = parsed;
           }
-
-          // Helper for smart column matching
-          const findBestMatch = (label: string) => {
-            const cleanLabel = label.trim().toLowerCase();
-
-            // 1. Exact Match
-            const exact = rowKeys.find(k => k.trim().toLowerCase() === cleanLabel);
-            if (exact) return exact;
-
-            // 2. Label contains Header (e.g. Label: "Area Kebersihan" -> Header: "Area")
-            // We look for a header key that is contained within the label
-            // We obey length to avoid matching short common words like "No" to "Notes" if "Notes" is the label.
-            // We prefer longer matches.
-            const labelContains = rowKeys
-              .filter(k => k.trim().length > 2 && cleanLabel.includes(k.trim().toLowerCase()))
-              .sort((a, b) => b.length - a.length)[0];
-            if (labelContains) return labelContains;
-
-            // 3. Header contains Label (e.g. Label: "Area" -> Header: "Area Kerja")
-            const headerContains = rowKeys
-              .filter(k => k.trim().toLowerCase().includes(cleanLabel))
-              .sort((a, b) => a.length - b.length)[0]; // prefer shortest match (closer to exact)
-            if (headerContains) return headerContains;
-
-            return undefined;
-          };
 
           // Map fields
           let hasData = false;
@@ -170,7 +222,17 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
         }));
 
         toast.dismiss(toastId);
-        toast.success(`Successfully imported ${successCount} entries.`);
+        if (successCount > 0) {
+          toast.success(`Successfully imported ${successCount} entries.`);
+          if (missingColumns.length > 0) {
+            toast.warning(`Warning: Columns not found for fields: ${missingColumns.join(', ')}`);
+          }
+        } else {
+          toast.error('No valid entries found to import.');
+          if (missingColumns.length > 0) {
+            toast.warning(`Check column headers. Missing: ${missingColumns.join(', ')}`);
+          }
+        }
         if (fileInputRef.current) fileInputRef.current.value = '';
       } catch (error) {
         console.error('Import error:', error);
