@@ -21,9 +21,14 @@ interface DynamicFormProps {
   menuId: string;
   editingEntry?: Entry | null;
   onSuccess?: () => void;
+  formSettings?: {
+    title?: string;
+    description?: string;
+    header_image?: string;
+  };
 }
 
-export function DynamicForm({ menuId, editingEntry, onSuccess }: DynamicFormProps) {
+export function DynamicForm({ menuId, editingEntry, onSuccess, formSettings }: DynamicFormProps) {
   const { fields, isLoading: fieldsLoading } = useFormFields(menuId);
   const { createEntry, updateEntry } = useEntries(menuId);
   const [formData, setFormData] = useState<Record<string, unknown>>(editingEntry?.data ?? {});
@@ -140,11 +145,26 @@ export function DynamicForm({ menuId, editingEntry, onSuccess }: DynamicFormProp
   }
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
+      {formSettings?.header_image && (
+        <div className="w-full h-48 sm:h-64 relative bg-muted">
+          <img
+            src={formSettings.header_image}
+            alt="Form Header"
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
       <CardHeader>
-        <CardTitle>{editingEntry ? 'Edit Entry' : 'Submit New Entry'}</CardTitle>
+        <CardTitle>
+          {editingEntry
+            ? 'Edit Entry'
+            : (formSettings?.title || 'Submit New Entry')}
+        </CardTitle>
         <CardDescription>
-          {editingEntry ? 'Update the entry details.' : 'Fill out the form to add a new entry.'}
+          {editingEntry
+            ? 'Update the entry details.'
+            : (formSettings?.description || 'Fill out the form to add a new entry.')}
         </CardDescription>
       </CardHeader>
       <CardContent>

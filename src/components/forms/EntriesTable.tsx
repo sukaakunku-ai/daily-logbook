@@ -166,7 +166,12 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
           if (typeof val === 'object' && val !== null) {
             const fileVal = val as { fileName?: string; webViewLink?: string };
             if (fileVal.webViewLink) {
-              return { content: 'View File', url: fileVal.webViewLink };
+              const label = field.field_type === 'image' ? 'View Image' : 'View File';
+              return {
+                content: label,
+                url: fileVal.webViewLink,
+                styles: { textColor: [0, 102, 204] } // Professional Blue
+              };
             }
             return fileVal.fileName || '-';
           }
@@ -185,10 +190,26 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
       didDrawCell: (data) => {
         if (data.section === 'body' && data.column.index > 0) {
           const cellRaw = data.cell.raw as { content?: string; url?: string } | string;
-          if (typeof cellRaw === 'object' && cellRaw?.url) {
+          if (typeof cellRaw === 'object' && cellRaw?.url && cellRaw?.content) {
             const { x, y, width, height } = data.cell;
+            // Link behavior
             doc.link(x, y, width, height, { url: cellRaw.url });
-            // Optional: Make text blue to indicate link (though style: textColor works in cell definition)
+
+            // Draw underline
+            const textWidth = doc.getTextWidth(cellRaw.content);
+            // Approximate text position (x + padding, y + height/2 + delta)
+            // Default autoTable padding is ~5px (scale factor involved but locally normalized)
+            // A safe bet for underline is:
+            const paddingX = 2; // consistent with default
+            const lineX = x + paddingX; // Align with left padding
+            // Align Y: data.cell.y + data.cell.height - paddingBottom
+            // Let's try to put it relative to text baseline.
+            // Text is vertically centered.
+            const lineY = y + (height / 2) + 2; // Approximation
+
+            doc.setDrawColor(0, 102, 204); // Blue
+            doc.setLineWidth(0.5);
+            doc.line(lineX, lineY, lineX + textWidth, lineY);
           }
         }
       }

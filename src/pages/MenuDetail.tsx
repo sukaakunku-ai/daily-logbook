@@ -4,12 +4,13 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMenus } from '@/hooks/useMenus';
-import { Plus, List, Settings2, ArrowLeft } from 'lucide-react';
+import { Plus, List, Settings2, ArrowLeft, Pencil } from 'lucide-react';
 import { FormBuilder } from '@/components/forms/FormBuilder';
 import { DynamicForm } from '@/components/forms/DynamicForm';
 import { EntriesTable } from '@/components/forms/EntriesTable';
 import { Entry } from '@/hooks/useEntries';
 import { AddMenuDialog } from '@/components/menus/AddMenuDialog';
+import { FormSettingsDialog } from '@/components/menus/FormSettingsDialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function MenuDetail() {
@@ -19,6 +20,7 @@ export default function MenuDetail() {
   const [activeTab, setActiveTab] = useState('entries');
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
   const [addSubMenuOpen, setAddSubMenuOpen] = useState(false);
+  const [formSettingsOpen, setFormSettingsOpen] = useState(false);
 
   const menu = menus.find((m) => m.id === menuId);
 
@@ -74,6 +76,12 @@ export default function MenuDetail() {
               </p>
             </div>
           </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setFormSettingsOpen(true)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Customize Form
+            </Button>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -101,6 +109,7 @@ export default function MenuDetail() {
               menuId={menuId!}
               editingEntry={editingEntry}
               onSuccess={handleFormSuccess}
+              formSettings={menu.form_settings}
             />
             {editingEntry && (
               <Button
@@ -157,6 +166,13 @@ export default function MenuDetail() {
         open={addSubMenuOpen}
         onOpenChange={setAddSubMenuOpen}
         parentId={menuId}
+      />
+
+      <FormSettingsDialog
+        open={formSettingsOpen}
+        onOpenChange={setFormSettingsOpen}
+        menu={menu}
+        key={menu.updated_at}
       />
     </DashboardLayout>
   );

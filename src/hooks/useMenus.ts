@@ -25,6 +25,11 @@ export interface Menu {
   icon: string;
   sort_order: number;
   parentId?: string | null;
+  form_settings?: {
+    title?: string;
+    description?: string;
+    header_image?: string;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -99,11 +104,12 @@ export function useMenus() {
   });
 
   const updateMenu = useMutation({
-    mutationFn: async ({ id, name, icon }: { id: string; name: string; icon?: string }) => {
+    mutationFn: async ({ id, name, icon, form_settings }: { id: string; name: string; icon?: string; form_settings?: Menu['form_settings'] }) => {
       const docRef = doc(db, 'menus', id);
       await updateDoc(docRef, {
         name,
         ...(icon && { icon }),
+        ...(form_settings && { form_settings }),
         updated_at: serverTimestamp(),
       });
       return { id };
