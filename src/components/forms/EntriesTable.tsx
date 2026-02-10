@@ -304,11 +304,22 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
         const lowerFilter = filterValue.toLowerCase();
         result = result.filter((entry) => {
           const val = entry.data[fieldId];
-          // Handle object values (files/images) for filtering ideally by filename
-          if (typeof val === 'object' && val !== null) {
-            const fileVal = val as { fileName?: string };
-            return (fileVal.fileName || '').toLowerCase().includes(lowerFilter);
+
+          if (Array.isArray(val)) {
+            return val.join(', ').toLowerCase().includes(lowerFilter);
           }
+
+          if (typeof val === 'boolean') {
+            const boolStr = val ? 'yes' : 'no';
+            return boolStr.includes(lowerFilter) || String(val).includes(lowerFilter);
+          }
+
+          if (typeof val === 'object' && val !== null) {
+            const fileVal = val as { fileName?: string; url?: string; webViewLink?: string };
+            const searchable = [fileVal.fileName, fileVal.url, fileVal.webViewLink].filter(Boolean).join(' ').toLowerCase();
+            return searchable.includes(lowerFilter);
+          }
+
           return String(val ?? '').toLowerCase().includes(lowerFilter);
         });
       }
