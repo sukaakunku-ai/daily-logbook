@@ -58,13 +58,14 @@ interface EntriesTableProps {
 
 export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
   const { fields, isLoading: fieldsLoading } = useFormFields(menuId);
-  const { entries, isLoading: entriesLoading, deleteEntry, createEntry } = useEntries(menuId);
+  const { entries, isLoading: entriesLoading, deleteEntry, createEntry, deleteAllEntries } = useEntries(menuId);
   const [search, setSearch] = useState('');
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortField, setSortField] = useState<string>('created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [deletingEntry, setDeletingEntry] = useState<Entry | null>(null);
+  const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
     to: undefined,
@@ -561,6 +562,15 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
                 Import
               </Button>
 
+              <Button
+                variant="destructive"
+                onClick={() => setIsDeleteAllOpen(true)}
+                disabled={entries.length === 0}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete All
+              </Button>
+
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -770,6 +780,29 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isDeleteAllOpen} onOpenChange={setIsDeleteAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete All Entries</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete ALL {entries.length} entries? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                deleteAllEntries.mutate();
+                setIsDeleteAllOpen(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete All
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

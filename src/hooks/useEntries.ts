@@ -10,7 +10,8 @@ import {
   doc,
   orderBy,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  writeBatch
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -114,11 +115,52 @@ export function useEntries(menuId: string | undefined) {
     },
   });
 
+  const deleteAllEntries = useMutation({
+    mutationFn: async () => {
+      if (!menuId) return;
+
+      const q = query(
+        collection(db, 'entries'),
+        where('menu_id', '==', menuId)
+      );
+      const querySnapshot = await getDocs(q);
+
+      // Batch delete (max 500 per batch)
+      const batches = [];
+      let batch = writeBatch(db);
+      let count = 0;
+
+      querySnapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+        count++;
+        if (count >= 500) {
+          batches.push(batch.commit());
+          batch = writeBatch(db);
+          count = 0;
+        }
+      });
+
+      if (count > 0) {
+        batches.push(batch.commit());
+      }
+
+      await Promise.all(batches);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['entries', menuId] });
+      toast.success('All entries deleted successfully');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to delete entries: ' + error.message);
+    },
+  });
+
   return {
     entries: entriesQuery.data ?? [],
     isLoading: entriesQuery.isLoading,
     createEntry,
     updateEntry,
     deleteEntry,
+    deleteAllEntries,
   };
 }
