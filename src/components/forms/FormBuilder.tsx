@@ -15,6 +15,7 @@ import {
   List,
   CheckSquare,
   Upload,
+  Clock,
 } from 'lucide-react';
 import { useFormFields, FormField, FieldType, CreateFieldInput, UpdateFieldInput } from '@/hooks/useFormFields';
 import { AddFieldDialog } from './AddFieldDialog';
@@ -34,6 +35,7 @@ const FIELD_ICONS: Record<FieldType, React.ElementType> = {
   textarea: FileText,
   number: Hash,
   date: Calendar,
+  time: Clock,
   select: List,
   checkbox: CheckSquare,
   file: Upload,
@@ -44,6 +46,7 @@ const FIELD_LABELS: Record<FieldType, string> = {
   textarea: 'Long Text',
   number: 'Number',
   date: 'Date',
+  time: 'Time',
   select: 'Dropdown',
   checkbox: 'Checkbox',
   file: 'File Upload',

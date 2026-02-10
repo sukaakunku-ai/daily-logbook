@@ -270,6 +270,8 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
         return '-';
       case 'date':
         return typeof value === 'string' ? format(new Date(value), 'MMM d, yyyy') : String(value);
+      case 'time':
+        return String(value);
       default:
         return String(value);
     }

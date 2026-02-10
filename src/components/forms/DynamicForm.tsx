@@ -217,6 +217,16 @@ function renderField(
           required={field.required}
         />
       );
+    case 'time':
+      return (
+        <Input
+          id={field.id}
+          type="time"
+          value={(value as string) ?? ''}
+          onChange={(e) => onChange(field.id, e.target.value)}
+          required={field.required}
+        />
+      );
     case 'select':
       return (
         <Select

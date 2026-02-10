@@ -27,6 +27,7 @@ const FIELD_TYPES: { value: FieldType; label: string }[] = [
   { value: 'textarea', label: 'Long Text' },
   { value: 'number', label: 'Number' },
   { value: 'date', label: 'Date' },
+  { value: 'time', label: 'Time' },
   { value: 'select', label: 'Dropdown' },
   { value: 'checkbox', label: 'Checkbox' },
   { value: 'file', label: 'File Upload' },
