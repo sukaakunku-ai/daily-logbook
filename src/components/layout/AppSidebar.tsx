@@ -31,6 +31,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useMenus, type Menu } from '@/hooks/useMenus';
 import { AddMenuDialog } from '@/components/menus/AddMenuDialog';
+import { useAuth } from '@/contexts/AuthContext';
 
 const iconMap: Record<string, LucideIcon> = {
   'file-text': FileText,
@@ -49,6 +50,7 @@ function getIcon(iconName: string): LucideIcon {
 
 export function AppSidebar() {
   const { menus, isLoading } = useMenus();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [addMenuOpen, setAddMenuOpen] = useState(false);
@@ -91,14 +93,16 @@ export function AppSidebar() {
           <SidebarGroup>
             <SidebarGroupLabel className="text-sidebar-foreground/60 px-4 flex items-center justify-between">
               <span>My Menus</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5 hover:bg-sidebar-accent"
-                onClick={() => setAddMenuOpen(true)}
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
+              {user && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 hover:bg-sidebar-accent"
+                  onClick={() => setAddMenuOpen(true)}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -106,7 +110,7 @@ export function AppSidebar() {
                   <div className="px-4 py-2 text-sm text-sidebar-foreground/50">Loading...</div>
                 ) : menus.filter(m => !m.parentId).length === 0 ? (
                   <div className="px-4 py-2 text-sm text-sidebar-foreground/50">
-                    No menus yet. Add one!
+                    No menus available.
                   </div>
                 ) : (
                   menus.filter(m => !m.parentId).map((menu: Menu) => {
@@ -151,20 +155,22 @@ export function AppSidebar() {
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="gradient-sidebar border-t border-sidebar-border p-4">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => navigate('/settings')}
-                isActive={isActive('/settings')}
-                className="hover:bg-sidebar-accent"
-              >
-                <Settings className="h-4 w-4" />
-                <span>Settings</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
+        {user && (
+          <SidebarFooter className="gradient-sidebar border-t border-sidebar-border p-4">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => navigate('/settings')}
+                  isActive={isActive('/settings')}
+                  className="hover:bg-sidebar-accent"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span>Settings</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarFooter>
+        )}
       </Sidebar>
 
       <AddMenuDialog open={addMenuOpen} onOpenChange={setAddMenuOpen} />

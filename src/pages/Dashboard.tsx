@@ -6,9 +6,11 @@ import { Plus, ClipboardList, FileText, Calendar, TrendingUp } from 'lucide-reac
 import { useState } from 'react';
 import { AddMenuDialog } from '@/components/menus/AddMenuDialog';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Dashboard() {
   const { menus, isLoading } = useMenus();
+  const { user } = useAuth();
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -40,10 +42,12 @@ export default function Dashboard() {
               Welcome back! Manage your dynamic menus and sub-menus.
             </p>
           </div>
-          <Button onClick={() => setAddMenuOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Menu
-          </Button>
+          {user && (
+            <Button onClick={() => setAddMenuOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Menu
+            </Button>
+          )}
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -82,12 +86,14 @@ export default function Dashboard() {
                 <ClipboardList className="mx-auto h-12 w-12 text-muted-foreground/50" />
                 <h3 className="mt-4 text-lg font-semibold">No menus yet</h3>
                 <p className="text-muted-foreground mt-2">
-                  Create your first menu to start organizing your data.
+                  {user ? 'Create your first menu to start organizing your data.' : 'No menus have been created yet.'}
                 </p>
-                <Button className="mt-4" onClick={() => setAddMenuOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Menu
-                </Button>
+                {user && (
+                  <Button className="mt-4" onClick={() => setAddMenuOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Menu
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
