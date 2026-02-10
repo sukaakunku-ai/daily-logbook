@@ -189,12 +189,19 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
                   entryData[field.id] = format(cellVal, 'yyyy-MM-dd');
                 } else if (field.field_type === 'checkbox') {
                   // Check if the value looks like a boolean or "yes/no"
-                  const sVal = String(cellVal).trim().toLowerCase();
-                  const isBool = sVal === 'yes' || sVal === 'true' || sVal === '1' || cellVal === true;
-                  // If it's seemingly text (e.g. "G Bawah"), user might have wrong field type or wants text.
-                  // But we must respect field_type 'checkbox' which usually implies boolean.
-                  // If the user mapped a Text column to a Checkbox field, they'll get False unless "Yes".
-                  entryData[field.id] = isBool;
+                  const sVal = String(cellVal).trim();
+                  const lowerVal = sVal.toLowerCase();
+
+                  if (['yes', 'true', '1', 'ya', 'benar'].includes(lowerVal)) {
+                    entryData[field.id] = true;
+                  } else if (['no', 'false', '0', 'tidak', 'salah'].includes(lowerVal)) {
+                    entryData[field.id] = false;
+                  } else {
+                    // Assume it's a multi-select value (e.g. "Area A" or "A, B")
+                    // Split by comma if present
+                    const values = sVal.split(',').map(v => v.trim()).filter(v => v);
+                    entryData[field.id] = values;
+                  }
                 } else if ((field.field_type === 'image' || field.field_type === 'file') || typeof cellVal === 'string') {
                   // Relaxed check: valid string in File/Image field = Link
                   if ((field.field_type === 'image' || field.field_type === 'file')) {
