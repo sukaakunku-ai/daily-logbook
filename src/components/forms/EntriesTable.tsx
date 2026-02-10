@@ -156,12 +156,12 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
           // Build debug map
           mappingDebug = fields.map(f => {
             const match = findBestMatch(f.label);
-            return `${f.label} -> ${match || '❌ NONE'}`;
+            return `${f.label} (${f.field_type}) -> ${match || '❌ NONE'}`;
           });
-          console.log('Field Mapping:', mappingDebug);
+          console.log('Field Mapping & Types:', mappingDebug);
 
           // Execute Import
-          await Promise.all(data.map(async (row: any) => {
+          await Promise.all(data.map(async (row: any, index: number) => {
             const entryData: Record<string, any> = {};
             let entryDate: Date | undefined = undefined;
 
@@ -188,7 +188,13 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
                 if (field.field_type === 'date' && cellVal instanceof Date) {
                   entryData[field.id] = format(cellVal, 'yyyy-MM-dd');
                 } else if (field.field_type === 'checkbox') {
-                  entryData[field.id] = (String(cellVal).toLowerCase() === 'yes' || cellVal === true);
+                  // Check if the value looks like a boolean or "yes/no"
+                  const sVal = String(cellVal).trim().toLowerCase();
+                  const isBool = sVal === 'yes' || sVal === 'true' || sVal === '1' || cellVal === true;
+                  // If it's seemingly text (e.g. "G Bawah"), user might have wrong field type or wants text.
+                  // But we must respect field_type 'checkbox' which usually implies boolean.
+                  // If the user mapped a Text column to a Checkbox field, they'll get False unless "Yes".
+                  entryData[field.id] = isBool;
                 } else if ((field.field_type === 'image' || field.field_type === 'file') || typeof cellVal === 'string') {
                   // Relaxed check: valid string in File/Image field = Link
                   if ((field.field_type === 'image' || field.field_type === 'file')) {
@@ -205,6 +211,11 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
                 }
               }
             });
+
+            if (index === 0) {
+              console.log('First Row Source:', row);
+              console.log('First Row Parsed Entry Data:', entryData);
+            }
 
             if (hasData) {
               await createEntry.mutateAsync({
