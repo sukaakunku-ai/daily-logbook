@@ -95,24 +95,41 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
           const entryData: Record<string, any> = {};
           let entryDate: Date | undefined = undefined;
 
-          // Check for Date column (created_at)
-          if (row['Date'] && row['Date'] instanceof Date) {
-            entryDate = row['Date'];
-          } else if (row['Date']) {
-            const parsed = new Date(row['Date']);
+          // Find keys in the row that match potential date columns
+          // SheetJS keys might have extra spaces
+          const rowKeys = Object.keys(row);
+          const findKey = (target: string) => rowKeys.find(k => k.trim().toLowerCase() === target.toLowerCase());
+
+          const dateKey = findKey('Date') || findKey('Timestamp') || findKey('Waktu') || findKey('Tanggal');
+          const dateVal = dateKey ? row[dateKey] : undefined;
+
+          if (dateVal instanceof Date) {
+            entryDate = dateVal;
+          } else if (dateVal) {
+            const parsed = new Date(dateVal);
             if (!isNaN(parsed.getTime())) entryDate = parsed;
           }
 
           // Map fields
           let hasData = false;
           fields.forEach(field => {
-            const cellVal = row[field.label];
-            if (cellVal !== undefined) {
+            // Fuzzy match header
+            const matchedKey = findKey(field.label);
+            const cellVal = matchedKey ? row[matchedKey] : undefined;
+
+            if (cellVal !== undefined && cellVal !== null && cellVal !== '') {
               hasData = true;
               if (field.field_type === 'date' && cellVal instanceof Date) {
                 entryData[field.id] = format(cellVal, 'yyyy-MM-dd');
               } else if (field.field_type === 'checkbox') {
-                entryData[field.id] = (cellVal === 'Yes' || cellVal === true);
+                entryData[field.id] = (String(cellVal).toLowerCase() === 'yes' || cellVal === true);
+              } else if ((field.field_type === 'image' || field.field_type === 'file') && typeof cellVal === 'string') {
+                // Fix for Google Drive links / URLs
+                entryData[field.id] = {
+                  fileName: 'Link',
+                  webViewLink: cellVal,
+                  url: cellVal
+                };
               } else {
                 entryData[field.id] = cellVal; // text, number, select, etc.
               }
