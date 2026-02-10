@@ -9,33 +9,36 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Professional Corporate Blue Theme - Light Mode */
-    /* Background: Very subtle cool gray, almost white, for clean look */
-    --background: 210 20% 98%;
+    /* "Biru Putih" - Clean White and Corporate Blue */
 
-    /* Foreground: Deep slate for high readability */
+    /* Background: Pure White or very subtle tint */
+    --background: 0 0% 100%;
     --foreground: 222 47% 11%;
+    /* Deep slate text */
 
-    /* Card: Pure white for distinct separation */
+    /* Card: White with shadow (shadow handled by classes) */
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Primary: Strong, trustworthy Corporate Blue (Azure/Royal) */
-    --primary: 215 100% 50%;
-    --primary-foreground: 0 0% 100%;
+    /* Primary: Professional Corporate Blue (e.g., Azure or deeply saturated blue) */
+    --primary: 221 83% 53%;
+    /* Distinct Blue */
+    --primary-foreground: 210 40% 98%;
 
-    /* Secondary: Light slate for subtle elements */
+    /* Secondary: Very light blue/gray for secondary actions */
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222 47% 11.2%;
 
-    /* Muted: Backgrounds for inactive items */
+    /* Muted */
     --muted: 210 40% 96.1%;
     --muted-foreground: 215 16% 47%;
 
     --accent: 210 40% 96.1%;
-    --accent-foreground: 222 47% 11.2%;
+    --accent-foreground: 221 83% 53%;
+    /* Blue accent */
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
@@ -46,27 +49,31 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --warning-foreground: 210 40% 98%;
 
-    /* Border: Subtle slate to define edges without noise */
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 215 100% 50%;
+    --ring: 221 83% 53%;
 
     --radius: 0.5rem;
-    /* Slightly less rounded for professional feel */
 
-    /* Sidebar: Deep Navy/Slate for professional contrast */
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 215 100% 50%;
+    /* Sidebar - Light Mode: Clean White with Blue accents */
+    --sidebar-background: 0 0% 100%;
+    /* White Sidebar */
+    --sidebar-foreground: 222 47% 11%;
+    /* Dark Text */
+    --sidebar-primary: 221 83% 53%;
+    /* Blue Selection */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 17%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 215 100% 50%;
+    /* White text on selection */
+    --sidebar-accent: 210 40% 96.1%;
+    /* Light Blue/Gray hover */
+    --sidebar-accent-foreground: 221 83% 53%;
+    /* Blue text on hover */
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 221 83% 53%;
 
-    /* Gradients: Subtle and modern */
-    --gradient-primary: linear-gradient(135deg, hsl(215 100% 50%) 0%, hsl(210 100% 60%) 100%);
-    --gradient-sidebar: linear-gradient(180deg, hsl(222 47% 11%) 0%, hsl(220 40% 8%) 100%);
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%) 0%, hsl(210 100% 60%) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 40% 98%) 100%);
   }
 
   .dark {

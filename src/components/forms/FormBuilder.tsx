@@ -17,6 +17,8 @@ import {
   Upload,
   Clock,
   Image as ImageIcon,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { useFormFields, FormField, FieldType, CreateFieldInput, UpdateFieldInput } from '@/hooks/useFormFields';
 import { AddFieldDialog } from './AddFieldDialog';
@@ -60,7 +62,7 @@ interface FormBuilderProps {
 }
 
 export function FormBuilder({ menuId }: FormBuilderProps) {
-  const { fields, isLoading, createField, updateField, deleteField } = useFormFields(menuId);
+  const { fields, isLoading, createField, updateField, deleteField, reorderFields } = useFormFields(menuId);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingField, setEditingField] = useState<FormField | null>(null);
   const [deletingField, setDeletingField] = useState<FormField | null>(null);
@@ -152,6 +154,42 @@ export function FormBuilder({ menuId }: FormBuilderProps) {
                       )}
                     </div>
                     <div className="flex gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const index = fields.findIndex(f => f.id === field.id);
+                          if (index > 0) {
+                            const newFields = [...fields];
+                            [newFields[index - 1], newFields[index]] = [newFields[index], newFields[index - 1]];
+                            const updates = newFields.map((f, i) => ({ id: f.id, sort_order: i }));
+                            reorderFields.mutate(updates);
+                          }
+                        }}
+                        disabled={fields.findIndex(f => f.id === field.id) === 0 || reorderFields.isPending}
+                        className="h-8 w-8"
+                        title="Move Up"
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const index = fields.findIndex(f => f.id === field.id);
+                          if (index < fields.length - 1) {
+                            const newFields = [...fields];
+                            [newFields[index + 1], newFields[index]] = [newFields[index], newFields[index + 1]];
+                            const updates = newFields.map((f, i) => ({ id: f.id, sort_order: i }));
+                            reorderFields.mutate(updates);
+                          }
+                        }}
+                        disabled={fields.findIndex(f => f.id === field.id) === fields.length - 1 || reorderFields.isPending}
+                        className="h-8 w-8"
+                        title="Move Down"
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"

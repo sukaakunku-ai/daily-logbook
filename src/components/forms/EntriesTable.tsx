@@ -165,7 +165,10 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
           if (typeof val === 'boolean') return val ? 'Yes' : 'No';
           if (typeof val === 'object' && val !== null) {
             const fileVal = val as { fileName?: string; webViewLink?: string };
-            return fileVal.webViewLink || fileVal.fileName || 'File';
+            if (fileVal.webViewLink) {
+              return { content: 'View File', url: fileVal.webViewLink };
+            }
+            return fileVal.fileName || '-';
           }
           return val ?? '-';
         })
@@ -179,6 +182,16 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
       startY: dateRange.from || dateRange.to ? 45 : 40,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [41, 128, 185] }, // Blue theme match
+      didDrawCell: (data) => {
+        if (data.section === 'body' && data.column.index > 0) {
+          const cellRaw = data.cell.raw as { content?: string; url?: string } | string;
+          if (typeof cellRaw === 'object' && cellRaw?.url) {
+            const { x, y, width, height } = data.cell;
+            doc.link(x, y, width, height, { url: cellRaw.url });
+            // Optional: Make text blue to indicate link (though style: textColor works in cell definition)
+          }
+        }
+      }
     });
 
     doc.save('entries-report.pdf');
