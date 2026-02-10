@@ -51,6 +51,7 @@ function getIcon(iconName: string): LucideIcon {
 export function AppSidebar() {
   const { menus, isLoading } = useMenus();
   const { user } = useAuth();
+  const isAdmin = user?.email === 'muhamadiruel@gmail.com';
   const navigate = useNavigate();
   const location = useLocation();
   const [addMenuOpen, setAddMenuOpen] = useState(false);
@@ -93,7 +94,7 @@ export function AppSidebar() {
           <SidebarGroup>
             <SidebarGroupLabel className="text-sidebar-foreground/60 px-4 flex items-center justify-between">
               <span>My Menus</span>
-              {user && (
+              {isAdmin && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -155,7 +156,7 @@ export function AppSidebar() {
           </SidebarGroup>
         </SidebarContent>
 
-        {user && (
+        {isAdmin && (
           <SidebarFooter className="gradient-sidebar border-t border-sidebar-border p-4">
             <SidebarMenu>
               <SidebarMenuItem>

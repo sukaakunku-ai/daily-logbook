@@ -39,6 +39,7 @@ import {
 import { FileText, Search, MoreVertical, Pencil, Trash2, ArrowUpDown, ExternalLink } from 'lucide-react';
 import { useFormFields, FormField } from '@/hooks/useFormFields';
 import { useEntries, Entry } from '@/hooks/useEntries';
+import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -58,6 +59,8 @@ interface EntriesTableProps {
 
 export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
   const { fields: allFields, isLoading: fieldsLoading } = useFormFields(menuId);
+  const { user } = useAuth();
+  const isAdmin = user?.email === 'muhamadiruel@gmail.com';
   // Exclude static fields like icon_link from the table
   const fields = allFields.filter(f => f.field_type !== 'icon_link');
   const { entries, isLoading: entriesLoading, deleteEntry, createEntry, deleteAllEntries } = useEntries(menuId);
@@ -664,26 +667,30 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
                 Excel
               </Button>
 
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept=".xlsx, .xls"
-                onChange={handleFileUpload}
-              />
-              <Button variant="outline" onClick={handleImportClick} disabled={fields.length === 0}>
-                <Upload className="mr-2 h-4 w-4" />
-                Import
-              </Button>
+              {isAdmin && (
+                <>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept=".xlsx, .xls"
+                    onChange={handleFileUpload}
+                  />
+                  <Button variant="outline" onClick={handleImportClick} disabled={fields.length === 0}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Import
+                  </Button>
 
-              <Button
-                variant="destructive"
-                onClick={() => setIsDeleteAllOpen(true)}
-                disabled={entries.length === 0}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete All
-              </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setIsDeleteAllOpen(true)}
+                    disabled={entries.length === 0}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete All
+                  </Button>
+                </>
+              )}
 
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -784,7 +791,7 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
                           <ArrowUpDown className="ml-2 h-3 w-3" />
                         </Button>
                       </TableHead>
-                      <TableHead className="w-12"></TableHead>
+                      {isAdmin && <TableHead className="w-12"></TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -798,28 +805,30 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
                         <TableCell className="text-muted-foreground">
                           {format(new Date(entry.created_at), 'MMM d, yyyy')}
                         </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => onEdit(entry)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => setDeletingEntry(entry)}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                        {isAdmin && (
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => onEdit(entry)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setDeletingEntry(entry)}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>

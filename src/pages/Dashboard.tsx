@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function Dashboard() {
   const { menus, isLoading } = useMenus();
   const { user } = useAuth();
+  const isAdmin = user?.email === 'muhamadiruel@gmail.com';
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -42,7 +43,7 @@ export default function Dashboard() {
               Welcome back! Manage your dynamic menus and sub-menus.
             </p>
           </div>
-          {user && (
+          {isAdmin && (
             <Button onClick={() => setAddMenuOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               New Menu
@@ -86,9 +87,9 @@ export default function Dashboard() {
                 <ClipboardList className="mx-auto h-12 w-12 text-muted-foreground/50" />
                 <h3 className="mt-4 text-lg font-semibold">No menus yet</h3>
                 <p className="text-muted-foreground mt-2">
-                  {user ? 'Create your first menu to start organizing your data.' : 'No menus have been created yet.'}
+                  {isAdmin ? 'Create your first menu to start organizing your data.' : 'No menus have been created yet.'}
                 </p>
-                {user && (
+                {isAdmin && (
                   <Button className="mt-4" onClick={() => setAddMenuOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" />
                     Create Menu

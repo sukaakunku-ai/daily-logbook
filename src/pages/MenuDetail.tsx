@@ -22,6 +22,7 @@ export default function MenuDetail() {
   const { menus, isLoading: menusLoading } = useMenus();
   const { fields, isLoading: fieldsLoading } = useFormFields(menuId);
   const { user } = useAuth();
+  const isAdmin = user?.email === 'muhamadiruel@gmail.com';
   const [activeTab, setActiveTab] = useState('entries');
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
   const [addSubMenuOpen, setAddSubMenuOpen] = useState(false);
@@ -31,7 +32,7 @@ export default function MenuDetail() {
   const isLoading = menusLoading || fieldsLoading;
 
   const handleEditEntry = (entry: Entry) => {
-    if (!user) return; // Prevent guests from editing
+    if (!isAdmin) return; // Only admin can edit
     setEditingEntry(entry);
     setActiveTab('submit');
   };
@@ -79,11 +80,11 @@ export default function MenuDetail() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight">{menu.name}</h1>
               <p className="text-muted-foreground">
-                {user ? 'Manage form fields and view entries' : 'View entries and submit data'}
+                {isAdmin ? 'Manage form fields and view entries' : 'View entries and submit data'}
               </p>
             </div>
           </div>
-          {user && (
+          {isAdmin && (
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setFormSettingsOpen(true)}>
                 <Pencil className="mr-2 h-4 w-4" />
@@ -105,7 +106,7 @@ export default function MenuDetail() {
               <Plus className="h-4 w-4" />
               {editingEntry ? 'Edit Entry' : 'Submit Entry'}
             </TabsTrigger>
-            {user && (
+            {isAdmin && (
               <TabsTrigger value="form-builder" className="gap-2">
                 <Settings2 className="h-4 w-4" />
                 Form Builder
@@ -137,7 +138,7 @@ export default function MenuDetail() {
             )}
           </TabsContent>
 
-          {user && (
+          {isAdmin && (
             <TabsContent value="form-builder" className="space-y-4">
               <FormBuilder menuId={menuId!} />
             </TabsContent>
@@ -148,7 +149,7 @@ export default function MenuDetail() {
           <div className="space-y-4 pt-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold">Sub-Menus</h2>
-              {user && (
+              {isAdmin && (
                 <Button size="sm" onClick={() => setAddSubMenuOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add Sub-Menu
