@@ -30,6 +30,9 @@ export default function MenuDetail() {
 
   const menu = menus.find((m) => m.id === menuId);
   const isLoading = menusLoading || fieldsLoading;
+  const subMenus = menus.filter(m => m.parentId === menuId);
+  const hasSubMenus = subMenus.length > 0;
+  const [showForm, setShowForm] = useState(!hasSubMenus);
   const hasIconLink = fields.some(f => f.field_type === 'icon_link');
 
   const handleEditEntry = (entry: Entry) => {
@@ -87,6 +90,12 @@ export default function MenuDetail() {
           </div>
           {isAdmin && (
             <div className="flex gap-2">
+              {hasSubMenus && !showForm && (
+                <Button variant="ghost" size="sm" onClick={() => setShowForm(true)} className="text-muted-foreground hover:text-primary">
+                  <Settings2 className="mr-2 h-4 w-4" />
+                  Show Form Builder
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={() => setFormSettingsOpen(true)}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Customize Form
@@ -99,56 +108,73 @@ export default function MenuDetail() {
 
         {/* Hide entries and submit entry if user is not admin and menu has icon links */}
         {(!hasIconLink || isAdmin) && (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="entries" className="gap-2">
-                <List className="h-4 w-4" />
-                Entries
-              </TabsTrigger>
-              <TabsTrigger value="submit" className="gap-2">
-                <Plus className="h-4 w-4" />
-                {editingEntry ? 'Edit Entry' : 'Submit Entry'}
-              </TabsTrigger>
-              {isAdmin && (
-                <TabsTrigger value="form-builder" className="gap-2">
-                  <Settings2 className="h-4 w-4" />
-                  Form Builder
-                </TabsTrigger>
-              )}
-            </TabsList>
+          <>
+            {showForm ? (
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+                <TabsList>
+                  <TabsTrigger value="entries" className="gap-2">
+                    <List className="h-4 w-4" />
+                    Entries
+                  </TabsTrigger>
+                  <TabsTrigger value="submit" className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    {editingEntry ? 'Edit Entry' : 'Submit Entry'}
+                  </TabsTrigger>
+                  {isAdmin && (
+                    <TabsTrigger value="form-builder" className="gap-2">
+                      <Settings2 className="h-4 w-4" />
+                      Form Builder
+                    </TabsTrigger>
+                  )}
+                </TabsList>
 
-            <TabsContent value="entries" className="space-y-4">
-              <EntriesTable menuId={menuId!} onEdit={handleEditEntry} />
-            </TabsContent>
+                <TabsContent value="entries" className="space-y-4">
+                  <EntriesTable menuId={menuId!} onEdit={handleEditEntry} />
+                </TabsContent>
 
-            <TabsContent value="submit" className="space-y-4">
-              <div className="max-w-3xl mx-auto space-y-4">
-                <DynamicForm
-                  menuId={menuId!}
-                  editingEntry={editingEntry}
-                  onSuccess={handleFormSuccess}
-                  formSettings={menu.form_settings}
-                />
-                {editingEntry && (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      setEditingEntry(null);
-                    }}
-                  >
-                    Cancel Edit
+                <TabsContent value="submit" className="space-y-4">
+                  <div className="max-w-3xl mx-auto space-y-4">
+                    <DynamicForm
+                      menuId={menuId!}
+                      editingEntry={editingEntry}
+                      onSuccess={handleFormSuccess}
+                      formSettings={menu.form_settings}
+                    />
+                    {editingEntry && (
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          setEditingEntry(null);
+                        }}
+                      >
+                        Cancel Edit
+                      </Button>
+                    )}
+                  </div>
+                </TabsContent>
+
+                {isAdmin && (
+                  <TabsContent value="form-builder" className="space-y-4">
+                    <FormBuilder menuId={menuId!} />
+                  </TabsContent>
+                )}
+              </Tabs>
+            ) : hasSubMenus && (
+              <div className="bg-muted/30 border border-dashed rounded-xl py-12 text-center">
+                <Settings2 className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
+                <h3 className="text-lg font-medium">Form & Entries Hidden</h3>
+                <p className="text-sm text-muted-foreground max-w-sm mx-auto mt-2">
+                  This menu is configured as a category for its sub-menus. The data entry form is hidden by default.
+                </p>
+                {isAdmin && (
+                  <Button variant="outline" size="sm" className="mt-6" onClick={() => setShowForm(true)}>
+                    Unhide Form Builder
                   </Button>
                 )}
               </div>
-            </TabsContent>
-
-            {isAdmin && (
-              <TabsContent value="form-builder" className="space-y-4">
-                <FormBuilder menuId={menuId!} />
-              </TabsContent>
             )}
-          </Tabs>
+          </>
         )}
 
         {!menu.parentId && (
