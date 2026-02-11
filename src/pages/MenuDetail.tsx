@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,15 @@ export default function MenuDetail() {
   const isLoading = menusLoading || fieldsLoading;
   const subMenus = menus.filter(m => m.parentId === menuId);
   const hasSubMenus = subMenus.length > 0;
-  const [showForm, setShowForm] = useState(!hasSubMenus);
+  const [showForm, setShowForm] = useState(false);
+
+  // Update visibility once menus load
+  useEffect(() => {
+    if (!menusLoading) {
+      setShowForm(!hasSubMenus);
+    }
+  }, [menusLoading, hasSubMenus]);
+
   const hasIconLink = fields.some(f => f.field_type === 'icon_link');
 
   const handleEditEntry = (entry: Entry) => {
