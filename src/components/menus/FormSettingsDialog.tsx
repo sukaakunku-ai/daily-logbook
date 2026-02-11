@@ -7,7 +7,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -143,21 +142,7 @@ export function FormSettingsDialog({ open, onOpenChange, menu }: FormSettingsDia
                                 </div>
                             )}
                         </div>
-                        <div className="space-y-4 pt-2">
-                            <Label className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Live Preview</Label>
-                            <Card className="border-dashed bg-muted/30">
-                                <CardHeader className="p-4">
-                                    <CardTitle className="text-lg">
-                                        {title || 'Form Title'}
-                                    </CardTitle>
-                                    <CardDescription>
-                                        <div className="whitespace-pre-wrap text-sm leading-relaxed min-h-[1.5rem]">
-                                            {description || 'Form description will appear here...'}
-                                        </div>
-                                    </CardDescription>
-                                </CardHeader>
-                            </Card>
-                        </div>
+
                     </div>
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
