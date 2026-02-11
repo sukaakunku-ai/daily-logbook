@@ -156,7 +156,9 @@ export default function MenuDetail() {
 
                 {isAdmin && (
                   <TabsContent value="form-builder" className="space-y-4">
-                    <FormBuilder menuId={menuId!} />
+                    <div className="max-w-3xl mx-auto">
+                      <FormBuilder menuId={menuId!} />
+                    </div>
                   </TabsContent>
                 )}
               </Tabs>
