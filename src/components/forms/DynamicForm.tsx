@@ -173,6 +173,19 @@ export function DynamicForm({ menuId, editingEntry, onSuccess, formSettings }: D
       <CardContent>
         <form onSubmit={handleSubmit} className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {fields.map((field) => {
+            // Conditional Visibility Logic
+            if (field.visibility_logic?.parent_field_id) {
+              const parentVal = formData[field.visibility_logic.parent_field_id];
+              const triggerVal = field.visibility_logic.trigger_value;
+
+              // Handle case where parent value might be string, number, or array
+              const isVisible = Array.isArray(parentVal)
+                ? parentVal.includes(triggerVal)
+                : String(parentVal ?? '') === String(triggerVal);
+
+              if (!isVisible) return null;
+            }
+
             const isIconLink = field.field_type === 'icon_link';
             return (
               <div

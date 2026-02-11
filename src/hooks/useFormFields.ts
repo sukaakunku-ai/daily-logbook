@@ -28,6 +28,10 @@ export interface FormField {
   required: boolean;
   options: string[];
   sort_order: number;
+  visibility_logic?: {
+    parent_field_id: string;
+    trigger_value: string;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -39,6 +43,10 @@ export interface CreateFieldInput {
   field_type: FieldType;
   required?: boolean;
   options?: string[];
+  visibility_logic?: {
+    parent_field_id: string;
+    trigger_value: string;
+  };
 }
 
 export interface UpdateFieldInput {
@@ -48,6 +56,10 @@ export interface UpdateFieldInput {
   field_type?: FieldType;
   required?: boolean;
   options?: string[];
+  visibility_logic?: {
+    parent_field_id: string;
+    trigger_value: string;
+  } | null;
 }
 
 export function useFormFields(menuId: string | undefined) {
@@ -93,6 +105,7 @@ export function useFormFields(menuId: string | undefined) {
         required: input.required ?? false,
         options: input.options ?? [],
         sort_order: maxOrder + 1,
+        visibility_logic: input.visibility_logic ?? null,
         created_at: serverTimestamp(),
         updated_at: serverTimestamp(),
       });
@@ -118,6 +131,7 @@ export function useFormFields(menuId: string | undefined) {
       if (input.field_type !== undefined) updateData.field_type = input.field_type;
       if (input.required !== undefined) updateData.required = input.required;
       if (input.options !== undefined) updateData.options = input.options;
+      if (input.visibility_logic !== undefined) updateData.visibility_logic = input.visibility_logic;
 
       await updateDoc(docRef, updateData);
       return { id: input.id };

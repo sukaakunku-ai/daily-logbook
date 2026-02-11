@@ -42,6 +42,7 @@ interface AddFieldDialogProps {
   editingField?: FormField | null;
   onSubmit: (data: CreateFieldInput | UpdateFieldInput) => void;
   isPending: boolean;
+  previousFields: FormField[];
 }
 
 export function AddFieldDialog({
@@ -51,6 +52,7 @@ export function AddFieldDialog({
   editingField,
   onSubmit,
   isPending,
+  previousFields,
 }: AddFieldDialogProps) {
   const [label, setLabel] = useState(editingField?.label ?? '');
   const [description, setDescription] = useState(editingField?.description ?? '');
@@ -60,6 +62,9 @@ export function AddFieldDialog({
   const [newOption, setNewOption] = useState('');
   const [isUploadingIcon, setIsUploadingIcon] = useState(false);
 
+  const [parentFieldId, setParentFieldId] = useState(editingField?.visibility_logic?.parent_field_id ?? '');
+  const [triggerValue, setTriggerValue] = useState(editingField?.visibility_logic?.trigger_value ?? '');
+
   // Sync state when editingField changes
   useEffect(() => {
     if (editingField) {
@@ -68,12 +73,16 @@ export function AddFieldDialog({
       setFieldType(editingField.field_type);
       setRequired(editingField.required);
       setOptions(editingField.options || []);
+      setParentFieldId(editingField.visibility_logic?.parent_field_id ?? '');
+      setTriggerValue(editingField.visibility_logic?.trigger_value ?? '');
     } else {
       setLabel('');
       setDescription('');
       setFieldType('text');
       setRequired(false);
       setOptions([]);
+      setParentFieldId('');
+      setTriggerValue('');
     }
   }, [editingField, open]);
 
@@ -85,6 +94,8 @@ export function AddFieldDialog({
     setOptions([]);
     setNewOption('');
     setIsUploadingIcon(false);
+    setParentFieldId('');
+    setTriggerValue('');
     onOpenChange(false);
   };
 
@@ -141,6 +152,10 @@ export function AddFieldDialog({
 
     const includeOptions = fieldType === 'select' || fieldType === 'checkbox' || fieldType === 'icon_link';
 
+    const visibility_logic = parentFieldId && triggerValue
+      ? { parent_field_id: parentFieldId, trigger_value: triggerValue }
+      : null;
+
     if (editingField) {
       onSubmit({
         id: editingField.id,
@@ -149,6 +164,7 @@ export function AddFieldDialog({
         field_type: fieldType,
         required,
         options: includeOptions ? options : [],
+        visibility_logic,
       });
     } else {
       onSubmit({
@@ -158,6 +174,7 @@ export function AddFieldDialog({
         field_type: fieldType,
         required,
         options: includeOptions ? options : [],
+        visibility_logic: visibility_logic ?? undefined,
       });
     }
     handleClose();
@@ -311,6 +328,47 @@ export function AddFieldDialog({
                 Required field
               </Label>
             </div>
+
+            {/* Conditional Visibility Section */}
+            {previousFields.length > 0 && fieldType !== 'icon_link' && (
+              <div className="space-y-4 pt-4 border-t">
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-primary">Conditional Visibility (Optional)</Label>
+                  <p className="text-[10px] text-muted-foreground">Show this field only if another field has a specific value.</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="parentField" className="text-xs">Parent Field</Label>
+                    <Select value={parentFieldId} onValueChange={setParentFieldId}>
+                      <SelectTrigger id="parentField" className="h-8 text-xs">
+                        <SelectValue placeholder="None" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None (Always Show)</SelectItem>
+                        {previousFields
+                          .filter(f => f.id !== editingField?.id && (f.field_type === 'select' || f.field_type === 'checkbox' || f.field_type === 'text'))
+                          .map((f) => (
+                            <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="triggerVal" className="text-xs">Trigger Value</Label>
+                    <Input
+                      id="triggerVal"
+                      value={triggerValue}
+                      onChange={(e) => setTriggerValue(e.target.value)}
+                      placeholder="e.g. Opsi 1"
+                      className="h-8 text-xs"
+                      disabled={!parentFieldId || parentFieldId === 'none'}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>

@@ -232,6 +232,7 @@ export function FormBuilder({ menuId }: FormBuilderProps) {
         editingField={editingField}
         onSubmit={handleSubmit}
         isPending={createField.isPending || updateField.isPending}
+        previousFields={fields}
       />
 
       <AlertDialog open={!!deletingField} onOpenChange={() => setDeletingField(null)}>
