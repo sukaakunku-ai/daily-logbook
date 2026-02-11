@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -58,6 +58,21 @@ export function AddFieldDialog({
   const [options, setOptions] = useState<string[]>(editingField?.options ?? []);
   const [newOption, setNewOption] = useState('');
   const [isUploadingIcon, setIsUploadingIcon] = useState(false);
+
+  // Sync state when editingField changes
+  useEffect(() => {
+    if (editingField) {
+      setLabel(editingField.label);
+      setFieldType(editingField.field_type);
+      setRequired(editingField.required);
+      setOptions(editingField.options || []);
+    } else {
+      setLabel('');
+      setFieldType('text');
+      setRequired(false);
+      setOptions([]);
+    }
+  }, [editingField, open]);
 
   const handleClose = () => {
     setLabel('');
