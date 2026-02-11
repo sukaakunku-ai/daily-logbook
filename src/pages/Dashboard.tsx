@@ -10,8 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function Dashboard() {
   const { menus, isLoading } = useMenus();
-  const { user } = useAuth();
-  const isAdmin = user?.email === 'muhamadiruel@gmail.com';
+  const { user, isAdmin } = useAuth();
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const navigate = useNavigate();
 

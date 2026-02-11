@@ -7,11 +7,21 @@ import {
   signOut as firebaseSignOut,
   updateProfile
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
+
+export interface UserProfile {
+  role: 'admin' | 'user';
+  permissions: string[];
+  email: string;
+  fullName: string;
+}
 
 interface AuthContextType {
   user: User | null;
+  userProfile: UserProfile | null;
   loading: boolean;
+  isAdmin: boolean;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -19,13 +29,38 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const ADMIN_EMAIL = 'muhamadiruel@gmail.com';
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
+      if (user) {
+        // Fetch user profile from Firestore
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          setUserProfile(userDoc.data() as UserProfile);
+        } else {
+          // If no profile exists yet (e.g. legacy users), create a default one
+          const defaultProfile: UserProfile = {
+            role: user.email === ADMIN_EMAIL ? 'admin' : 'user',
+            permissions: [],
+            email: user.email || '',
+            fullName: user.displayName || '',
+          };
+          await setDoc(doc(db, 'users', user.uid), {
+            ...defaultProfile,
+            created_at: serverTimestamp(),
+          });
+          setUserProfile(defaultProfile);
+        }
+      } else {
+        setUserProfile(null);
+      }
       setLoading(false);
     });
 
@@ -38,6 +73,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await updateProfile(userCredential.user, {
         displayName: fullName,
       });
+
+      // Create user profile in Firestore
+      const profile: UserProfile = {
+        role: email === ADMIN_EMAIL ? 'admin' : 'user',
+        permissions: [],
+        email: email,
+        fullName: fullName,
+      };
+
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
+        ...profile,
+        created_at: serverTimestamp(),
+      });
+
       return { error: null };
     } catch (error) {
       return { error: error as Error };
@@ -57,8 +106,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await firebaseSignOut(auth);
   };
 
+  const isAdmin = userProfile?.role === 'admin' || user?.email === ADMIN_EMAIL;
+
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, userProfile, loading, isAdmin, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

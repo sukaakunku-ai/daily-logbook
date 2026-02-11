@@ -35,25 +35,35 @@ export interface Menu {
 }
 
 export function useMenus() {
-  const { user } = useAuth();
+  const { user, userProfile, isAdmin } = useAuth();
   const queryClient = useQueryClient();
 
   const menusQuery = useQuery({
-    queryKey: ['menus'],
+    queryKey: ['menus', user?.uid, isAdmin],
     queryFn: async () => {
-      // Fetch all menus to create a shared dashboard
+      // Fetch all menus
       const q = query(collection(db, 'menus'));
       const querySnapshot = await getDocs(q);
-      const menus = querySnapshot.docs.map(doc => ({
+      let menus = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         created_at: (doc.data().created_at as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
         updated_at: (doc.data().updated_at as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
       })) as Menu[];
+
+      // Filter by permissions if not admin
+      if (!isAdmin && userProfile) {
+        const permittedIds = userProfile.permissions || [];
+        menus = menus.filter(menu =>
+          permittedIds.includes(menu.id) ||
+          (menu.parentId && permittedIds.includes(menu.parentId))
+        );
+      }
+
       // Sort manually by sort_order
       return menus.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
     },
-    enabled: true,
+    enabled: !!user,
   });
 
   // Show error if query fails - removed useEffect to prevent re-render issues

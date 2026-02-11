@@ -6,9 +6,8 @@ interface AdminRouteProps {
 }
 
 export function AdminRoute({ children }: AdminRouteProps) {
-    const { user, loading } = useAuth();
+    const { user, loading, isAdmin } = useAuth();
     const location = useLocation();
-    const isAdmin = user?.email === 'muhamadiruel@gmail.com';
 
     if (loading) {
         return (

@@ -50,8 +50,7 @@ function getIcon(iconName: string): LucideIcon {
 
 export function AppSidebar() {
   const { menus, isLoading } = useMenus();
-  const { user } = useAuth();
-  const isAdmin = user?.email === 'muhamadiruel@gmail.com';
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [addMenuOpen, setAddMenuOpen] = useState(false);

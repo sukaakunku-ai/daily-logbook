@@ -27,7 +27,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
+import { useAuth } from '@/contexts/AuthContext';
+import { UserManagement } from '@/components/settings/UserManagement';
+
 export default function Settings() {
+  const { user, isAdmin } = useAuth();
   const { menus, deleteMenu, updateMenu } = useMenus();
   const [editingMenu, setEditingMenu] = useState<Menu | null>(null);
   const [editName, setEditName] = useState('');
@@ -52,6 +56,8 @@ export default function Settings() {
             Manage your menus and configure integrations.
           </p>
         </div>
+
+        {isAdmin && <UserManagement />}
 
         <Card>
           <CardHeader>
