@@ -4,6 +4,7 @@ import {
     query,
     getDocs,
     updateDoc,
+    deleteDoc,
     doc,
     serverTimestamp,
     Timestamp,
@@ -98,10 +99,27 @@ export function useUsers() {
         },
     });
 
+    const deleteUser = useMutation({
+        mutationFn: async (userId: string) => {
+            // For now, we only delete the Firestore profile. 
+            // Deleting from Firebase Auth requires a Cloud Function or Admin SDK.
+            const docRef = doc(db, 'users', userId);
+            await deleteDoc(docRef);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+            toast.success('User profile removed successfully');
+        },
+        onError: (error: any) => {
+            toast.error('Failed to remove user: ' + error.message);
+        },
+    });
+
     return {
         users: usersQuery.data ?? [],
         isLoading: usersQuery.isLoading,
         createUser,
         updatePermissions,
+        deleteUser,
     };
 }

@@ -24,11 +24,22 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Plus, Shield, UserPlus, Loader2 } from 'lucide-react';
+import { Plus, Shield, UserPlus, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export function UserManagement() {
-    const { users, isLoading, createUser, updatePermissions } = useUsers();
+    const { users, isLoading, createUser, updatePermissions, deleteUser } = useUsers();
     const { menus } = useMenus();
 
     const [isAddUserOpen, setIsAddUserOpen] = useState(false);
@@ -222,15 +233,54 @@ export function UserManagement() {
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        {u.role !== 'admin' && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => setEditingPermissions({ userId: u.id, permissions: u.permissions || [] })}
-                                            >
-                                                Edit Access
-                                            </Button>
-                                        )}
+                                        <div className="flex justify-end gap-2">
+                                            {u.role !== 'admin' && (
+                                                <>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => setEditingPermissions({ userId: u.id, permissions: u.permissions || [] })}
+                                                    >
+                                                        Edit Access
+                                                    </Button>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                                disabled={deleteUser.isPending}
+                                                            >
+                                                                {deleteUser.isPending ? (
+                                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                )}
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Delete User Profile</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    Are you sure you want to delete the profile for "{u.fullName}"?
+                                                                    This will remove their menu access and profile data.
+                                                                    Note: This only removes the app profile; the login account will remain until manually removed from Firebase Console.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                <AlertDialogAction
+                                                                    onClick={() => deleteUser.mutate(u.id)}
+                                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                                >
+                                                                    Delete Profile
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </>
+                                            )}
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}
