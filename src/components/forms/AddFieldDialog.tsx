@@ -58,6 +58,7 @@ export function AddFieldDialog({
   const [description, setDescription] = useState(editingField?.description ?? '');
   const [fieldType, setFieldType] = useState<FieldType>(editingField?.field_type ?? 'text');
   const [required, setRequired] = useState(editingField?.required ?? false);
+  const [allowOther, setAllowOther] = useState(editingField?.allow_other ?? false);
   const [options, setOptions] = useState<string[]>(editingField?.options ?? []);
   const [newOption, setNewOption] = useState('');
   const [isUploadingIcon, setIsUploadingIcon] = useState(false);
@@ -72,6 +73,7 @@ export function AddFieldDialog({
       setDescription(editingField.description || '');
       setFieldType(editingField.field_type);
       setRequired(editingField.required);
+      setAllowOther(editingField.allow_other ?? false);
       setOptions(editingField.options || []);
       setParentFieldId(editingField.visibility_logic?.parent_field_id ?? '');
       setTriggerValue(editingField.visibility_logic?.trigger_value ?? '');
@@ -80,6 +82,7 @@ export function AddFieldDialog({
       setDescription('');
       setFieldType('text');
       setRequired(false);
+      setAllowOther(false);
       setOptions([]);
       setParentFieldId('');
       setTriggerValue('');
@@ -91,6 +94,7 @@ export function AddFieldDialog({
     setDescription('');
     setFieldType('text');
     setRequired(false);
+    setAllowOther(false);
     setOptions([]);
     setNewOption('');
     setIsUploadingIcon(false);
@@ -164,6 +168,7 @@ export function AddFieldDialog({
         field_type: fieldType,
         required,
         options: includeOptions ? options : [],
+        allow_other: allowOther,
         visibility_logic,
       });
     } else {
@@ -174,6 +179,7 @@ export function AddFieldDialog({
         field_type: fieldType,
         required,
         options: includeOptions ? options : [],
+        allow_other: allowOther,
         visibility_logic: visibility_logic ?? undefined,
       });
     }
@@ -318,15 +324,30 @@ export function AddFieldDialog({
                 </div>
               </div>
             )}
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="required"
-                checked={required}
-                onCheckedChange={(c) => setRequired(c === true)}
-              />
-              <Label htmlFor="required" className="cursor-pointer">
-                Required field
-              </Label>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="required"
+                  checked={required}
+                  onCheckedChange={(c) => setRequired(c === true)}
+                />
+                <Label htmlFor="required" className="cursor-pointer">
+                  Required field
+                </Label>
+              </div>
+
+              {(fieldType === 'select' || fieldType === 'checkbox') && (
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="allowOther"
+                    checked={allowOther}
+                    onCheckedChange={(c) => setAllowOther(c === true)}
+                  />
+                  <Label htmlFor="allowOther" className="cursor-pointer">
+                    Enable "Other" option
+                  </Label>
+                </div>
+              )}
             </div>
 
             {/* Conditional Visibility Section */}

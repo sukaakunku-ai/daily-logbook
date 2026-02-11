@@ -92,7 +92,13 @@ export function DynamicForm({ menuId, editingEntry, onSuccess, formSettings }: D
       for (const field of fields) {
         if (field.required) {
           const value = formData[field.id];
-          if (value === undefined || value === null || value === '') {
+          const isEmpty = value === undefined ||
+            value === null ||
+            value === '' ||
+            value === '__other__' ||
+            (Array.isArray(value) && (value.length === 0 || (value.length === 1 && value[0] === "__other_active__")));
+
+          if (isEmpty) {
             toast.error(`${field.label} is required`);
             setIsSubmitting(false);
             return;
@@ -100,10 +106,21 @@ export function DynamicForm({ menuId, editingEntry, onSuccess, formSettings }: D
         }
       }
 
+      // Sanitize data (remove internal helper flags)
+      const sanitizedData = { ...formData };
+      Object.keys(sanitizedData).forEach(key => {
+        const val = sanitizedData[key];
+        if (Array.isArray(val)) {
+          sanitizedData[key] = val.filter(v => v !== "__other_active__");
+        } else if (val === "__other__") {
+          sanitizedData[key] = "";
+        }
+      });
+
       if (editingEntry) {
-        await updateEntry.mutateAsync({ id: editingEntry.id, data: formData });
+        await updateEntry.mutateAsync({ id: editingEntry.id, data: sanitizedData });
       } else {
-        await createEntry.mutateAsync({ menu_id: menuId, data: formData });
+        await createEntry.mutateAsync({ menu_id: menuId, data: sanitizedData });
       }
 
       setFormData({});
@@ -279,50 +296,118 @@ function renderField(
         />
       );
     case 'select':
+      const isOtherSelected = field.allow_other && value && !field.options.includes(value as string);
       return (
-        <Select
-          value={(value as string) ?? ''}
-          onValueChange={(v) => onChange(field.id, v)}
-          required={field.required}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select an option" />
-          </SelectTrigger>
-          <SelectContent>
-            {field.options.map((opt) => (
-              <SelectItem key={opt} value={opt}>
-                {opt}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="space-y-2">
+          <Select
+            value={isOtherSelected ? "__other__" : ((value as string) ?? '')}
+            onValueChange={(v) => {
+              if (v === "__other__") {
+                onChange(field.id, "__other__");
+              } else {
+                onChange(field.id, v);
+              }
+            }}
+            required={field.required && !isOtherSelected}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select an option" />
+            </SelectTrigger>
+            <SelectContent>
+              {field.options.map((opt) => (
+                <SelectItem key={opt} value={opt}>
+                  {opt}
+                </SelectItem>
+              ))}
+              {field.allow_other && (
+                <SelectItem value="__other__">Other...</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+          {field.allow_other && (isOtherSelected || value === "__other__") && (
+            <Input
+              placeholder="Please specify..."
+              value={isOtherSelected ? (value as string) : ""}
+              onChange={(e) => onChange(field.id, e.target.value)}
+              className="mt-2 animate-fade-in"
+              autoFocus
+              required={field.required}
+            />
+          )}
+        </div>
       );
     case 'checkbox':
       if (field.options && field.options.length > 0) {
         const selectedValues = (value as string[]) ?? [];
+        const otherValue = field.allow_other
+          ? selectedValues.find(v => !field.options.includes(v))
+          : undefined;
+        const isOtherChecked = otherValue !== undefined || selectedValues.includes("__other_active__");
+
         return (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 border rounded-lg bg-muted/30">
-            {field.options.map((option) => (
-              <div key={option} className="flex items-center gap-2">
-                <Checkbox
-                  id={`${field.id}-${option}`}
-                  checked={selectedValues.includes(option)}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      onChange(field.id, [...selectedValues, option]);
-                    } else {
-                      onChange(field.id, selectedValues.filter((v) => v !== option));
-                    }
-                  }}
-                />
-                <Label
-                  htmlFor={`${field.id}-${option}`}
-                  className="cursor-pointer font-normal text-sm"
-                >
-                  {option}
-                </Label>
-              </div>
-            ))}
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 border rounded-lg bg-muted/30">
+              {field.options.map((option) => (
+                <div key={option} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`${field.id}-${option}`}
+                    checked={selectedValues.includes(option)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        onChange(field.id, [...selectedValues, option]);
+                      } else {
+                        onChange(field.id, selectedValues.filter((v) => v !== option));
+                      }
+                    }}
+                  />
+                  <Label
+                    htmlFor={`${field.id}-${option}`}
+                    className="cursor-pointer font-normal text-sm"
+                  >
+                    {option}
+                  </Label>
+                </div>
+              ))}
+              {field.allow_other && (
+                <div className="flex items-center gap-2 border-l pl-3 ml-1 border-primary/20">
+                  <Checkbox
+                    id={`${field.id}-other`}
+                    checked={isOtherChecked}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        onChange(field.id, [...selectedValues, "__other_active__"]);
+                      } else {
+                        // Remove both the active flag and any custom value
+                        onChange(field.id, selectedValues.filter(v => field.options.includes(v)));
+                      }
+                    }}
+                  />
+                  <Label
+                    htmlFor={`${field.id}-other`}
+                    className="cursor-pointer font-normal text-sm text-primary font-medium"
+                  >
+                    Other...
+                  </Label>
+                </div>
+              )}
+            </div>
+            {field.allow_other && isOtherChecked && (
+              <Input
+                placeholder="Please specify other..."
+                value={otherValue ?? ""}
+                onChange={(e) => {
+                  const baseValues = selectedValues.filter(v => field.options.includes(v));
+                  if (e.target.value.trim()) {
+                    onChange(field.id, [...baseValues, e.target.value]);
+                  } else {
+                    onChange(field.id, [...baseValues, "__other_active__"]);
+                  }
+                }}
+                className="animate-fade-in"
+                autoFocus
+                required={field.required}
+              />
+            )}
           </div>
         );
       }
