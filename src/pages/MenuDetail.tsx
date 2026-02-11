@@ -122,23 +122,25 @@ export default function MenuDetail() {
             </TabsContent>
 
             <TabsContent value="submit" className="space-y-4">
-              <DynamicForm
-                menuId={menuId!}
-                editingEntry={editingEntry}
-                onSuccess={handleFormSuccess}
-                formSettings={menu.form_settings}
-              />
-              {editingEntry && (
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() => {
-                    setEditingEntry(null);
-                  }}
-                >
-                  Cancel Edit
-                </Button>
-              )}
+              <div className="max-w-3xl mx-auto space-y-4">
+                <DynamicForm
+                  menuId={menuId!}
+                  editingEntry={editingEntry}
+                  onSuccess={handleFormSuccess}
+                  formSettings={menu.form_settings}
+                />
+                {editingEntry && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setEditingEntry(null);
+                    }}
+                  >
+                    Cancel Edit
+                  </Button>
+                )}
+              </div>
             </TabsContent>
 
             {isAdmin && (

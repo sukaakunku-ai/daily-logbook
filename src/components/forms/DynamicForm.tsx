@@ -146,7 +146,7 @@ export function DynamicForm({ menuId, editingEntry, onSuccess, formSettings }: D
   }
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden shadow-md">
       {formSettings?.header_image && (
         <div className="w-full h-48 sm:h-64 relative bg-muted">
           <img
