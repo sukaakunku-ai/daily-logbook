@@ -162,10 +162,12 @@ export function DynamicForm({ menuId, editingEntry, onSuccess, formSettings }: D
             ? 'Edit Entry'
             : (formSettings?.title || 'Submit New Entry')}
         </CardTitle>
-        <CardDescription>
-          {editingEntry
-            ? 'Update the entry details.'
-            : (formSettings?.description || 'Fill out the form to add a new entry.')}
+        <CardDescription className="pt-2">
+          <div className="whitespace-pre-wrap text-sm leading-relaxed">
+            {editingEntry
+              ? 'Update the entry details.'
+              : (formSettings?.description || 'Fill out the form to add a new entry.')}
+          </div>
         </CardDescription>
       </CardHeader>
       <CardContent>
