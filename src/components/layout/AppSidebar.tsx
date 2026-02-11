@@ -62,8 +62,8 @@ export function AppSidebar() {
       <Sidebar className="border-r-0">
         <SidebarHeader className="p-4 gradient-sidebar border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-sidebar-primary/20">
-              <ClipboardList className="h-5 w-5 text-sidebar-primary" />
+            <div className="p-2 rounded-lg bg-white/20">
+              <ClipboardList className="h-5 w-5 text-white" />
             </div>
             <div className="flex flex-col">
               <span className="font-semibold text-sidebar-foreground">Management KST</span>
