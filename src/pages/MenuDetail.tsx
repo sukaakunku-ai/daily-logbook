@@ -166,20 +166,7 @@ export default function MenuDetail() {
                   </TabsContent>
                 )}
               </Tabs>
-            ) : hasSubMenus && (
-              <div className="bg-muted/30 border border-dashed rounded-xl py-12 text-center">
-                <Settings2 className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
-                <h3 className="text-lg font-medium">Form & Entries Hidden</h3>
-                <p className="text-sm text-muted-foreground max-w-sm mx-auto mt-2">
-                  This menu is configured as a category for its sub-menus. The data entry form is hidden by default.
-                </p>
-                {isAdmin && (
-                  <Button variant="outline" size="sm" className="mt-6" onClick={() => setShowForm(true)}>
-                    Show Form Areas
-                  </Button>
-                )}
-              </div>
-            )}
+            ) : null}
           </>
         )}
 
