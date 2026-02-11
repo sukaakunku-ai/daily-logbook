@@ -30,9 +30,11 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { UserManagement } from '@/components/settings/UserManagement';
 
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+
 export default function Settings() {
   const { user, isAdmin } = useAuth();
-  const { menus, deleteMenu, updateMenu } = useMenus();
+  const { menus, deleteMenu, updateMenu, reorderMenus } = useMenus();
   const [editingMenu, setEditingMenu] = useState<Menu | null>(null);
   const [editName, setEditName] = useState('');
 
@@ -45,6 +47,21 @@ export default function Settings() {
     if (!editingMenu || !editName.trim()) return;
     await updateMenu.mutateAsync({ id: editingMenu.id, name: editName.trim() });
     setEditingMenu(null);
+  };
+
+  const onDragEnd = (result: any) => {
+    if (!result.destination) return;
+
+    const items = Array.from(menus);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    const updatedMenus = items.map((menu, index) => ({
+      id: menu.id,
+      sort_order: index,
+    }));
+
+    reorderMenus.mutate(updatedMenus);
   };
 
   return (
@@ -72,49 +89,67 @@ export default function Settings() {
                 No menus created yet. Go to Dashboard to create one.
               </p>
             ) : (
-              <div className="space-y-2">
-                {menus.map((menu) => (
-                  <div
-                    key={menu.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                  >
-                    <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                    <span className="flex-1 font-medium">{menu.name}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleEditClick(menu)}
+              <DragDropContext onDragEnd={onDragEnd}>
+                <Droppable droppableId="menus">
+                  {(provided) => (
+                    <div
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
+                      className="space-y-2"
                     >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Menu</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{menu.name}"? This will also delete all sub-menus, entries, and form fields. This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteMenu.mutate(menu.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                ))}
-              </div>
+                      {menus.map((menu, index) => (
+                        <Draggable key={menu.id} draggableId={menu.id} index={index}>
+                          {(provided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors shadow-sm"
+                            >
+                              <div {...provided.dragHandleProps}>
+                                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                              </div>
+                              <span className="flex-1 font-medium">{menu.name}</span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleEditClick(menu)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Menu</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{menu.name}"? This will also delete all sub-menus, entries, and form fields. This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => deleteMenu.mutate(menu.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
             )}
           </CardContent>
         </Card>

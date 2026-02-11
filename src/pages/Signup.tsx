@@ -45,7 +45,7 @@ export default function Signup() {
             <div className="p-2.5 rounded-xl gradient-primary">
               <ClipboardList className="h-7 w-7 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-bold text-foreground">Daily Work Tracker</span>
+            <span className="text-2xl font-bold text-foreground">Management KST</span>
           </div>
         </div>
 
