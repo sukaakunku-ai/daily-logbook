@@ -180,10 +180,17 @@ export function DynamicForm({ menuId, editingEntry, onSuccess, formSettings }: D
                 className={isIconLink ? 'col-span-1' : 'col-span-full space-y-2'}
               >
                 {!isIconLink && (
-                  <Label htmlFor={field.id}>
-                    {field.label}
-                    {field.required && <span className="text-destructive ml-1">*</span>}
-                  </Label>
+                  <div className="space-y-1">
+                    <Label htmlFor={field.id} className="text-sm font-semibold">
+                      {field.label}
+                      {field.required && <span className="text-destructive ml-1">*</span>}
+                    </Label>
+                    {field.description && (
+                      <p className="text-[11px] text-muted-foreground italic leading-tight">
+                        {field.description}
+                      </p>
+                    )}
+                  </div>
                 )}
                 {renderField(field, formData[field.id], handleChange, handleFileUpload, uploadingFiles.has(field.id))}
               </div>

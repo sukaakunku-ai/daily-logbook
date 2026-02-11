@@ -53,6 +53,7 @@ export function AddFieldDialog({
   isPending,
 }: AddFieldDialogProps) {
   const [label, setLabel] = useState(editingField?.label ?? '');
+  const [description, setDescription] = useState(editingField?.description ?? '');
   const [fieldType, setFieldType] = useState<FieldType>(editingField?.field_type ?? 'text');
   const [required, setRequired] = useState(editingField?.required ?? false);
   const [options, setOptions] = useState<string[]>(editingField?.options ?? []);
@@ -63,11 +64,13 @@ export function AddFieldDialog({
   useEffect(() => {
     if (editingField) {
       setLabel(editingField.label);
+      setDescription(editingField.description || '');
       setFieldType(editingField.field_type);
       setRequired(editingField.required);
       setOptions(editingField.options || []);
     } else {
       setLabel('');
+      setDescription('');
       setFieldType('text');
       setRequired(false);
       setOptions([]);
@@ -76,6 +79,7 @@ export function AddFieldDialog({
 
   const handleClose = () => {
     setLabel('');
+    setDescription('');
     setFieldType('text');
     setRequired(false);
     setOptions([]);
@@ -141,6 +145,7 @@ export function AddFieldDialog({
       onSubmit({
         id: editingField.id,
         label: label.trim(),
+        description: description.trim(),
         field_type: fieldType,
         required,
         options: includeOptions ? options : [],
@@ -149,6 +154,7 @@ export function AddFieldDialog({
       onSubmit({
         menu_id: menuId,
         label: label.trim(),
+        description: description.trim(),
         field_type: fieldType,
         required,
         options: includeOptions ? options : [],
@@ -179,6 +185,17 @@ export function AddFieldDialog({
                 placeholder="e.g., Customer Name"
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Field Note (Optional)</Label>
+              <Input
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Short instructions for the inputter"
+              />
+              <p className="text-[10px] text-muted-foreground">Will be shown to users filling out the form.</p>
             </div>
 
             {fieldType === 'icon_link' && (

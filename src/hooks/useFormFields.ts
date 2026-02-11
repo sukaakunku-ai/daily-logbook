@@ -23,6 +23,7 @@ export interface FormField {
   id: string;
   menu_id: string;
   label: string;
+  description?: string;
   field_type: FieldType;
   required: boolean;
   options: string[];
@@ -34,6 +35,7 @@ export interface FormField {
 export interface CreateFieldInput {
   menu_id: string;
   label: string;
+  description?: string;
   field_type: FieldType;
   required?: boolean;
   options?: string[];
@@ -42,6 +44,7 @@ export interface CreateFieldInput {
 export interface UpdateFieldInput {
   id: string;
   label?: string;
+  description?: string;
   field_type?: FieldType;
   required?: boolean;
   options?: string[];
@@ -85,6 +88,7 @@ export function useFormFields(menuId: string | undefined) {
       const docRef = await addDoc(collection(db, 'form_fields'), {
         menu_id: input.menu_id,
         label: input.label,
+        description: input.description ?? '',
         field_type: input.field_type,
         required: input.required ?? false,
         options: input.options ?? [],
@@ -110,6 +114,7 @@ export function useFormFields(menuId: string | undefined) {
         updated_at: serverTimestamp(),
       };
       if (input.label !== undefined) updateData.label = input.label;
+      if (input.description !== undefined) updateData.description = input.description;
       if (input.field_type !== undefined) updateData.field_type = input.field_type;
       if (input.required !== undefined) updateData.required = input.required;
       if (input.options !== undefined) updateData.options = input.options;

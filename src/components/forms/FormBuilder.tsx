@@ -139,21 +139,28 @@ export function FormBuilder({ menuId }: FormBuilderProps) {
                     className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                   >
                     <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span className="font-medium truncate">{field.label}</span>
-                      <Badge variant="outline" className="text-xs shrink-0">
-                        {FIELD_LABELS[field.field_type]}
-                      </Badge>
-                      {field.required && (
-                        <Badge variant="secondary" className="text-xs shrink-0">
-                          Required
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="font-medium truncate">{field.label}</span>
+                        <Badge variant="outline" className="text-[10px] h-4 shrink-0 px-1">
+                          {FIELD_LABELS[field.field_type]}
                         </Badge>
-                      )}
-                      {field.field_type === 'select' && field.options.length > 0 && (
-                        <span className="text-xs text-muted-foreground shrink-0">
-                          ({field.options.length} options)
-                        </span>
+                        {field.required && (
+                          <Badge variant="secondary" className="text-[10px] h-4 shrink-0 px-1">
+                            Required
+                          </Badge>
+                        )}
+                        {field.field_type === 'select' && field.options.length > 0 && (
+                          <span className="text-[10px] text-muted-foreground shrink-0">
+                            ({field.options.length} options)
+                          </span>
+                        )}
+                      </div>
+                      {field.description && (
+                        <p className="text-[10px] text-muted-foreground italic truncate pl-6">
+                          Note: {field.description}
+                        </p>
                       )}
                     </div>
                     <div className="flex gap-1 shrink-0">
