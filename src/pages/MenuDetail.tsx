@@ -90,10 +90,14 @@ export default function MenuDetail() {
           </div>
           {isAdmin && (
             <div className="flex gap-2">
-              {hasSubMenus && !showForm && (
-                <Button variant="ghost" size="sm" onClick={() => setShowForm(true)} className="text-muted-foreground hover:text-primary">
+              {hasSubMenus && (
+                <Button
+                  variant={showForm ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => setShowForm(!showForm)}
+                >
                   <Settings2 className="mr-2 h-4 w-4" />
-                  Show Form Builder
+                  {showForm ? 'Hide Form Areas' : 'Show Form Areas'}
                 </Button>
               )}
               <Button variant="outline" size="sm" onClick={() => setFormSettingsOpen(true)}>
@@ -171,7 +175,7 @@ export default function MenuDetail() {
                 </p>
                 {isAdmin && (
                   <Button variant="outline" size="sm" className="mt-6" onClick={() => setShowForm(true)}>
-                    Unhide Form Builder
+                    Show Form Areas
                   </Button>
                 )}
               </div>
