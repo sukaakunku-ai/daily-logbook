@@ -17,8 +17,6 @@ import {
   Upload,
   Clock,
   Image as ImageIcon,
-  ArrowUp,
-  ArrowDown,
   Link,
 } from 'lucide-react';
 import { useFormFields, FormField, FieldType, CreateFieldInput, UpdateFieldInput } from '@/hooks/useFormFields';
@@ -33,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 const FIELD_ICONS: Record<FieldType, React.ElementType> = {
   text: Type,
@@ -95,6 +94,21 @@ export function FormBuilder({ menuId }: FormBuilderProps) {
     }
   };
 
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const items = Array.from(fields);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    const updates = items.map((f, i) => ({
+      id: f.id,
+      sort_order: i,
+    }));
+
+    reorderFields.mutate(updates);
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -130,97 +144,80 @@ export function FormBuilder({ menuId }: FormBuilderProps) {
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {fields.map((field) => {
-                const Icon = FIELD_ICONS[field.field_type];
-                return (
+            <DragDropContext onDragEnd={onDragEnd}>
+              <Droppable droppableId="form-fields">
+                {(provided) => (
                   <div
-                    key={field.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                    className="space-y-2"
                   >
-                    <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="font-medium truncate">{field.label}</span>
-                        <Badge variant="outline" className="text-[10px] h-4 shrink-0 px-1">
-                          {FIELD_LABELS[field.field_type]}
-                        </Badge>
-                        {field.required && (
-                          <Badge variant="secondary" className="text-[10px] h-4 shrink-0 px-1">
-                            Required
-                          </Badge>
-                        )}
-                        {field.field_type === 'select' && field.options.length > 0 && (
-                          <span className="text-[10px] text-muted-foreground shrink-0">
-                            ({field.options.length} options)
-                          </span>
-                        )}
-                      </div>
-                      {field.description && (
-                        <p className="text-[10px] text-muted-foreground italic truncate pl-6">
-                          Note: {field.description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          const index = fields.findIndex(f => f.id === field.id);
-                          if (index > 0) {
-                            const newFields = [...fields];
-                            [newFields[index - 1], newFields[index]] = [newFields[index], newFields[index - 1]];
-                            const updates = newFields.map((f, i) => ({ id: f.id, sort_order: i }));
-                            reorderFields.mutate(updates);
-                          }
-                        }}
-                        disabled={fields.findIndex(f => f.id === field.id) === 0 || reorderFields.isPending}
-                        className="h-8 w-8"
-                        title="Move Up"
-                      >
-                        <ArrowUp className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          const index = fields.findIndex(f => f.id === field.id);
-                          if (index < fields.length - 1) {
-                            const newFields = [...fields];
-                            [newFields[index + 1], newFields[index]] = [newFields[index], newFields[index + 1]];
-                            const updates = newFields.map((f, i) => ({ id: f.id, sort_order: i }));
-                            reorderFields.mutate(updates);
-                          }
-                        }}
-                        disabled={fields.findIndex(f => f.id === field.id) === fields.length - 1 || reorderFields.isPending}
-                        className="h-8 w-8"
-                        title="Move Down"
-                      >
-                        <ArrowDown className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEditField(field)}
-                        className="h-8 w-8"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeletingField(field)}
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    {fields.map((field, index) => {
+                      const Icon = FIELD_ICONS[field.field_type];
+                      return (
+                        <Draggable key={field.id} draggableId={field.id} index={index}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className={`flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors ${snapshot.isDragging ? 'shadow-lg border-primary/50' : ''
+                                }`}
+                            >
+                              <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing">
+                                <GripVertical className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                              <div className="flex flex-col flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                                  <span className="font-medium truncate">{field.label}</span>
+                                  <Badge variant="outline" className="text-[10px] h-4 shrink-0 px-1">
+                                    {FIELD_LABELS[field.field_type]}
+                                  </Badge>
+                                  {field.required && (
+                                    <Badge variant="secondary" className="text-[10px] h-4 shrink-0 px-1">
+                                      Required
+                                    </Badge>
+                                  )}
+                                  {field.field_type === 'select' && field.options.length > 0 && (
+                                    <span className="text-[10px] text-muted-foreground shrink-0">
+                                      ({field.options.length} options)
+                                    </span>
+                                  )}
+                                </div>
+                                {field.description && (
+                                  <p className="text-[10px] text-muted-foreground italic truncate pl-6">
+                                    Note: {field.description}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex gap-1 shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEditField(field)}
+                                  className="h-8 w-8"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setDeletingField(field)}
+                                  className="h-8 w-8 text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      );
+                    })}
+                    {provided.placeholder}
                   </div>
-                );
-              })}
-            </div>
+                )}
+              </Droppable>
+            </DragDropContext>
           )}
         </CardContent>
       </Card>
