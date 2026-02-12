@@ -90,15 +90,33 @@ export function DynamicForm({ menuId, editingEntry, onSuccess, formSettings }: D
     try {
       // Validate required fields
       for (const field of fields) {
+        // Skip validation if field is hidden by conditional logic
+        if (field.visibility_logic?.parent_field_id) {
+          const parentVal = formData[field.visibility_logic.parent_field_id];
+          const triggerVal = field.visibility_logic.trigger_value;
+          const isVisible = Array.isArray(parentVal)
+            ? parentVal.includes(triggerVal)
+            : String(parentVal ?? '') === String(triggerVal);
+
+          if (!isVisible) continue;
+        }
+
         if (field.required) {
           const value = formData[field.id];
-          const isEmpty = value === undefined ||
-            value === null ||
-            value === '' ||
-            value === '__other__' ||
-            (Array.isArray(value) && (value.length === 0 || (value.length === 1 && value[0] === "__other_active__")));
 
-          if (isEmpty) {
+          // Helper to check if a value is truly empty (ignoring internal flags)
+          const isTrulyEmpty = (val: any) => {
+            if (val === undefined || val === null || val === '') return true;
+            if (val === '__other__') return true;
+            if (Array.isArray(val)) {
+              // Filter out helper flag and any empty strings
+              const filtered = val.filter(v => v !== "__other_active__" && String(v).trim() !== "");
+              return filtered.length === 0;
+            }
+            return false;
+          };
+
+          if (isTrulyEmpty(value)) {
             toast.error(`${field.label} is required`);
             setIsSubmitting(false);
             return;
