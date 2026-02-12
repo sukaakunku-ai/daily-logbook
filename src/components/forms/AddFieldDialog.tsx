@@ -33,6 +33,7 @@ const FIELD_TYPES: { value: FieldType; label: string }[] = [
   { value: 'select', label: 'Dropdown' },
   { value: 'checkbox', label: 'Checkbox' },
   { value: 'file', label: 'File Upload' },
+  { value: 'image', label: 'Image Upload' },
   { value: 'icon_link', label: 'Icon Link' },
 ];
 
