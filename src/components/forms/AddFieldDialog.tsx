@@ -189,9 +189,9 @@ export function AddFieldDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col p-0 overflow-hidden">
-        <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[90vh]">
-          <DialogHeader className="p-6 pb-2">
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col p-0">
+        <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden max-h-[90vh]">
+          <DialogHeader className="p-6 pb-2 shrink-0">
             <DialogTitle>{editingField ? 'Edit Field' : 'Add Field'}</DialogTitle>
             <DialogDescription>
               {editingField
@@ -200,8 +200,8 @@ export function AddFieldDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 px-6">
-            <div className="space-y-4 py-4">
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="label">Field Label</Label>
                 <Input
@@ -394,9 +394,9 @@ export function AddFieldDialog({
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
 
-          <DialogFooter className="p-6 pt-2 border-t mt-auto">
+          <DialogFooter className="p-6 pt-2 border-t shrink-0">
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
