@@ -4,7 +4,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMenus } from '@/hooks/useMenus';
-import { Plus, List, Settings2, ArrowLeft, Pencil } from 'lucide-react';
+import { Plus, List, Settings2, ArrowLeft, Pencil, Share2 } from 'lucide-react';
 import { FormBuilder } from '@/components/forms/FormBuilder';
 import { DynamicForm } from '@/components/forms/DynamicForm';
 import { EntriesTable } from '@/components/forms/EntriesTable';
@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { QuickLinks } from '@/components/forms/QuickLinks';
 import { useFormFields } from '@/hooks/useFormFields';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 export default function MenuDetail() {
   const { menuId } = useParams();
@@ -52,6 +53,12 @@ export default function MenuDetail() {
   const handleFormSuccess = () => {
     setEditingEntry(null);
     setActiveTab('entries');
+  };
+
+  const handleShareForm = () => {
+    const url = `${window.location.origin}/form/${menuId}`;
+    navigator.clipboard.writeText(url);
+    toast.success('Public form link copied to clipboard!');
   };
 
   if (isLoading) {
@@ -111,6 +118,10 @@ export default function MenuDetail() {
               <Button variant="outline" size="sm" onClick={() => setFormSettingsOpen(true)}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Customize Form
+              </Button>
+              <Button variant="default" size="sm" onClick={handleShareForm} className="bg-blue-600 hover:bg-blue-700">
+                <Share2 className="mr-2 h-4 w-4" />
+                Share Form
               </Button>
             </div>
           )}

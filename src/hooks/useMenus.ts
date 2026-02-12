@@ -39,7 +39,7 @@ export function useMenus() {
   const queryClient = useQueryClient();
 
   const menusQuery = useQuery({
-    queryKey: ['menus', user?.uid, isAdmin],
+    queryKey: ['menus', user?.uid || 'public', isAdmin],
     queryFn: async () => {
       // Fetch all menus
       const q = query(collection(db, 'menus'));
@@ -63,7 +63,7 @@ export function useMenus() {
       // Sort manually by sort_order
       return menus.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
     },
-    enabled: !!user,
+    enabled: true,
   });
 
   // Show error if query fails - removed useEffect to prevent re-render issues
