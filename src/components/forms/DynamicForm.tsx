@@ -206,7 +206,7 @@ export function DynamicForm({ menuId, editingEntry, onSuccess, formSettings }: D
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {fields.map((field) => {
             // Conditional Visibility Logic
             if (field.visibility_logic?.parent_field_id) {

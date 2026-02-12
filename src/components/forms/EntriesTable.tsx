@@ -494,7 +494,7 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
 
   // Group fields by label to handle multiple conditional visibility branches for the same logical data point
   const groupedFields = useMemo(() => {
-    const groups: Record<string, FormField[]> = [];
+    const groups: FormField[] = [];
     const labelMap = new Map<string, FormField[]>();
 
     fields.forEach(f => {
@@ -701,19 +701,19 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
 
               <div className="flex-1"></div>
 
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={exportToPDF} disabled={filteredAndSortedEntries.length === 0}>
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <Button variant="outline" size="sm" onClick={exportToPDF} disabled={filteredAndSortedEntries.length === 0} className="flex-1 sm:flex-none">
                   <Download className="mr-2 h-4 w-4" />
                   PDF
                 </Button>
 
-                <Button variant="outline" size="sm" onClick={exportToExcel} disabled={filteredAndSortedEntries.length === 0}>
+                <Button variant="outline" size="sm" onClick={exportToExcel} disabled={filteredAndSortedEntries.length === 0} className="flex-1 sm:flex-none">
                   <Download className="mr-2 h-4 w-4" />
                   Excel
                 </Button>
 
                 {isAdmin && (
-                  <>
+                  <div className="flex gap-2 w-full sm:w-auto">
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -721,7 +721,7 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
                       accept=".xlsx, .xls"
                       onChange={handleFileUpload}
                     />
-                    <Button variant="outline" size="sm" onClick={handleImportClick} disabled={fields.length === 0}>
+                    <Button variant="outline" size="sm" onClick={handleImportClick} disabled={fields.length === 0} className="flex-1 sm:flex-none">
                       <Upload className="mr-2 h-4 w-4" />
                       Import
                     </Button>
@@ -731,11 +731,12 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
                       size="sm"
                       onClick={() => setIsDeleteAllOpen(true)}
                       disabled={entries.length === 0}
+                      className="flex-1 sm:flex-none"
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete All
                     </Button>
-                  </>
+                  </div>
                 )}
               </div>
 

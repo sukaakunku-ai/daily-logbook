@@ -104,22 +104,23 @@ export default function MenuDetail() {
             </div>
           </div>
           {isAdmin && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               {hasSubMenus && (
                 <Button
                   variant={showForm ? "secondary" : "outline"}
                   size="sm"
                   onClick={() => setShowForm(!showForm)}
+                  className="flex-1 sm:flex-none"
                 >
                   <Settings2 className="mr-2 h-4 w-4" />
                   {showForm ? 'Hide Form Areas' : 'Show Form Areas'}
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={() => setFormSettingsOpen(true)}>
+              <Button variant="outline" size="sm" onClick={() => setFormSettingsOpen(true)} className="flex-1 sm:flex-none">
                 <Pencil className="mr-2 h-4 w-4" />
                 Customize Form
               </Button>
-              <Button variant="default" size="sm" onClick={handleShareForm} className="bg-blue-600 hover:bg-blue-700">
+              <Button variant="default" size="sm" onClick={handleShareForm} className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none">
                 <Share2 className="mr-2 h-4 w-4" />
                 Share Form
               </Button>
@@ -134,17 +135,17 @@ export default function MenuDetail() {
           <>
             {showForm ? (
               <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-                <TabsList>
-                  <TabsTrigger value="entries" className="gap-2">
+                <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden bg-background border-b rounded-none h-auto p-0 flex-nowrap whitespace-nowrap">
+                  <TabsTrigger value="entries" className="gap-2 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none bg-transparent py-2">
                     <List className="h-4 w-4" />
                     Entries
                   </TabsTrigger>
-                  <TabsTrigger value="submit" className="gap-2">
+                  <TabsTrigger value="submit" className="gap-2 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none bg-transparent py-2">
                     <Plus className="h-4 w-4" />
                     {editingEntry ? 'Edit Entry' : 'Submit Entry'}
                   </TabsTrigger>
                   {isAdmin && (
-                    <TabsTrigger value="form-builder" className="gap-2">
+                    <TabsTrigger value="form-builder" className="gap-2 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none bg-transparent py-2">
                       <Settings2 className="h-4 w-4" />
                       Form Builder
                     </TabsTrigger>
