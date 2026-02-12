@@ -492,6 +492,31 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
     XLSX.writeFile(workbook, `entries-report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 
+  // Group fields by label to handle multiple conditional visibility branches for the same logical data point
+  const groupedFields = useMemo(() => {
+    const groups: Record<string, FormField[]> = [];
+    const labelMap = new Map<string, FormField[]>();
+
+    fields.forEach(f => {
+      const existing = labelMap.get(f.label) || [];
+      existing.push(f);
+      labelMap.set(f.label, existing);
+    });
+
+    // Convert back to order-preserved array of groups
+    const seenLabels = new Set<string>();
+    fields.forEach(f => {
+      if (!seenLabels.has(f.label)) {
+        groups.push(labelMap.get(f.label)![0]); // Use the first field as the group representative
+        seenLabels.add(f.label);
+      }
+    });
+
+    return { groups, labelMap };
+  }, [fields]);
+
+  const { groups: tableColumns, labelMap } = groupedFields;
+
   const totalPages = Math.ceil(filteredAndSortedEntries.length / PAGE_SIZE);
   const paginatedEntries = filteredAndSortedEntries.slice(
     (currentPage - 1) * PAGE_SIZE,
@@ -505,8 +530,23 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
     }
   };
 
+  const getGroupedValue = (entry: Entry, label: string) => {
+    const matchingFields = labelMap.get(label) || [];
+    // Find the first non-empty value among all fields with this label
+    for (const field of matchingFields) {
+      const val = entry.data[field.id];
+      if (val !== undefined && val !== null && val !== '' && !(Array.isArray(val) && val.length === 0)) {
+        return { value: val, field };
+      }
+    }
+    // Default to the first field if nothing found
+    return { value: undefined, field: matchingFields[0] };
+  };
+
   const renderCellValue = (field: FormField, value: unknown) => {
-    if (value === undefined || value === null) return '-';
+    if (value === undefined || value === null || value === '') return '-';
+    // If it's an empty array, it's also empty
+    if (Array.isArray(value) && value.length === 0) return '-';
 
     switch (field.field_type) {
       case 'checkbox':
@@ -514,7 +554,7 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
           return (
             <div className="flex flex-wrap gap-1">
               {value.map((v) => (
-                <Badge key={v} variant="secondary" className="text-[10px] px-1.5 py-0">
+                <Badge key={v} variant="secondary" className="text-[10px] px-1.5 py-0 whitespace-nowrap">
                   {v}
                 </Badge>
               ))}
@@ -530,16 +570,20 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
               href={fileData.webViewLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:underline inline-flex items-center gap-1"
+              className="text-primary hover:underline inline-flex items-center gap-1 text-xs"
             >
-              {fileData.fileName ?? 'View File'}
-              <ExternalLink className="h-3 w-3" />
+              <span className="truncate max-w-[120px]">{fileData.fileName ?? 'View File'}</span>
+              <ExternalLink className="h-3 w-3 shrink-0" />
             </a>
           );
         }
         return '-';
       case 'date':
-        return typeof value === 'string' ? format(new Date(value), 'MMM d, yyyy') : String(value);
+        try {
+          return typeof value === 'string' ? format(new Date(value), 'MMM d, yyyy') : String(value);
+        } catch (e) {
+          return String(value);
+        }
       case 'time':
         return String(value);
       case 'image':
@@ -547,21 +591,21 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
         if (imgData?.webViewLink) {
           return (
             <div className="flex flex-col gap-1">
-              <span className="text-xs text-muted-foreground truncate max-w-[150px]">{imgData.fileName}</span>
+              <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">{imgData.fileName}</span>
               <a
                 href={imgData.webViewLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline inline-flex items-center gap-1 text-xs"
               >
-                View Image <ExternalLink className="h-3 w-3" />
+                View Image <ExternalLink className="h-3 w-3 shrink-0" />
               </a>
             </div>
           );
         }
         return '-';
       default:
-        return String(value);
+        return <span className="text-sm">{String(value)}</span>;
     }
   };
 
@@ -657,40 +701,43 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
 
               <div className="flex-1"></div>
 
-              <Button variant="outline" onClick={exportToPDF} disabled={filteredAndSortedEntries.length === 0}>
-                <Download className="mr-2 h-4 w-4" />
-                PDF
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={exportToPDF} disabled={filteredAndSortedEntries.length === 0}>
+                  <Download className="mr-2 h-4 w-4" />
+                  PDF
+                </Button>
 
-              <Button variant="outline" onClick={exportToExcel} disabled={filteredAndSortedEntries.length === 0}>
-                <Download className="mr-2 h-4 w-4" />
-                Excel
-              </Button>
+                <Button variant="outline" size="sm" onClick={exportToExcel} disabled={filteredAndSortedEntries.length === 0}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Excel
+                </Button>
 
-              {isAdmin && (
-                <>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept=".xlsx, .xls"
-                    onChange={handleFileUpload}
-                  />
-                  <Button variant="outline" onClick={handleImportClick} disabled={fields.length === 0}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Import
-                  </Button>
+                {isAdmin && (
+                  <>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      accept=".xlsx, .xls"
+                      onChange={handleFileUpload}
+                    />
+                    <Button variant="outline" size="sm" onClick={handleImportClick} disabled={fields.length === 0}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Import
+                    </Button>
 
-                  <Button
-                    variant="destructive"
-                    onClick={() => setIsDeleteAllOpen(true)}
-                    disabled={entries.length === 0}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete All
-                  </Button>
-                </>
-              )}
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setIsDeleteAllOpen(true)}
+                      disabled={entries.length === 0}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete All
+                    </Button>
+                  </>
+                )}
+              </div>
 
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -718,17 +765,17 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
             </div>
           ) : (
             <>
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border rounded-lg overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      {fields.slice(0, 5).map((field) => (
-                        <TableHead key={field.id}>
+                      {tableColumns.slice(0, 10).map((field) => (
+                        <TableHead key={field.id} className="whitespace-nowrap">
                           <div className="flex items-center gap-1">
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="-ml-3 h-auto py-1 px-2"
+                              className="-ml-3 h-auto py-1 px-2 hover:bg-transparent"
                               onClick={() => handleSort(field.id)}
                             >
                               {field.label}
@@ -780,7 +827,7 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
                           </div>
                         </TableHead>
                       ))}
-                      <TableHead>
+                      <TableHead className="whitespace-nowrap">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -797,12 +844,15 @@ export function EntriesTable({ menuId, onEdit }: EntriesTableProps) {
                   <TableBody>
                     {paginatedEntries.map((entry) => (
                       <TableRow key={entry.id}>
-                        {fields.slice(0, 5).map((field) => (
-                          <TableCell key={field.id} className="max-w-48 truncate">
-                            {renderCellValue(field, entry.data[field.id])}
-                          </TableCell>
-                        ))}
-                        <TableCell className="text-muted-foreground">
+                        {tableColumns.slice(0, 10).map((col) => {
+                          const { value, field } = getGroupedValue(entry, col.label);
+                          return (
+                            <TableCell key={col.id} className="max-w-48 truncate">
+                              {renderCellValue(field, value)}
+                            </TableCell>
+                          );
+                        })}
+                        <TableCell className="text-muted-foreground whitespace-nowrap">
                           {format(new Date(entry.created_at), 'MMM d, yyyy')}
                         </TableCell>
                         {isAdmin && (
