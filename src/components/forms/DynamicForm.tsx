@@ -340,7 +340,7 @@ function renderField(
       if (field.options && field.options.length > 0) {
         const selectedValues = (value as string[]) ?? [];
         const otherValue = field.allow_other
-          ? selectedValues.find(v => !field.options.includes(v))
+          ? selectedValues.find(v => !field.options.includes(v) && v !== "__other_active__")
           : undefined;
         const isOtherChecked = otherValue !== undefined || selectedValues.includes("__other_active__");
 
